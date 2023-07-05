@@ -4,8 +4,8 @@
 #include<map>
 
 using namespace std;
-/* pPrefixParser f = map[]; (*f)(params);*/
-enum {
+
+enum { // determines the "right-binding power" of an operation
     _ = 0,
     LOWEST,
     EQUALS,
@@ -158,6 +158,7 @@ void Parser::parserExpressionStatement(ExpressionStatement* stmt) {
 /************************** Expressions ****************************/
 using pPrefixParser = unique_ptr<Expression> (Parser::*) ();
 using pInfixParser = unique_ptr<Expression> (Parser::*) (unique_ptr<Expression>& leftExpression);
+
 map<string, pPrefixParser> prefixParsers = {
     {types.IDENT, &Parser::parseIdentifier},
     {types.INT, &Parser::parseIntLiteral},
@@ -191,7 +192,12 @@ unique_ptr<Expression> Parser::parseExpression(int precedence) {
     if (prefixParser == nullptr) return nullptr;
     unique_ptr<Expression> leftExpression = (this->*prefixParser)();
 
-    int nextPrecedence = precedences[nextTok.type];
+    int nextPrecedence;
+    if (precedences.find(nextTok.type) == precedences.end()) {
+        nextPrecedence = LOWEST;
+    } else {
+        nextPrecedence = precedences[nextTok.type];
+    }
     while (nextTok.type != types.SEMICOLON && precedence < nextPrecedence) {
         pInfixParser infixParser = infixParsers[nextTok.type];
         if (infixParser == nullptr) return leftExpression;
