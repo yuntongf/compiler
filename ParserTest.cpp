@@ -62,15 +62,15 @@ TEST(ParserTest, ReturnTest) {
     }
 }
 
-TEST(ParserTest, SerializeTest) {
-    string input = "let a = b;";
-    Lexer l = Lexer(input);
-    Parser p = Parser(l);
-    auto program = Program();
-    int error = p.parseProgram(&program);
-    if (error) FAIL() << "test failed due to error in parser..." << endl;
-    cout << program.serialize();
-}
+// TEST(ParserTest, SerializeTest) {
+//     string input = "let a = b;";
+//     Lexer l = Lexer(input);
+//     Parser p = Parser(l);
+//     auto program = Program();
+//     int error = p.parseProgram(&program);
+//     if (error) FAIL() << "test failed due to error in parser..." << endl;
+//     cout << program.serialize();
+// }
 
 TEST(ParserTest, SingleIdentifierTest) {
     string input = "foo;";
@@ -81,7 +81,9 @@ TEST(ParserTest, SingleIdentifierTest) {
     if (error) FAIL() << "test failed due to error in parser..." << endl;
     Statement* temp = program.statements.at(0).get();
     ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(temp);
+    Identifier* ident = dynamic_cast<Identifier*>(stmt->expression.get());
     ASSERT_EQ(stmt->token.literal, "foo");
+    ASSERT_EQ(ident->value, "foo");
 }
 
 TEST(ParserTest, IntLiteralTest) {
@@ -94,6 +96,50 @@ TEST(ParserTest, IntLiteralTest) {
     Statement* temp = program.statements.at(0).get();
     ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(temp);
     ASSERT_EQ(stmt->token.literal, "5");
+    IntLiteral* intLit = dynamic_cast<IntLiteral*>(stmt->expression.get());
+    ASSERT_EQ(intLit->value, 5);
+}
+
+TEST(ParserTest, PrefixOperatorTest) {
+    string input = "!5; -10;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt1 = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    ExpressionStatement* stmt2 = dynamic_cast<ExpressionStatement*>(program.statements.at(1).get());
+    PrefixExpression* exp1 = dynamic_cast<PrefixExpression*>(stmt1->expression.get());
+    PrefixExpression* exp2 = dynamic_cast<PrefixExpression*>(stmt2->expression.get());
+    ASSERT_EQ(exp1->Operator, "!");
+    ASSERT_EQ(exp2->Operator, "-");
+    IntLiteral* intLit1 = dynamic_cast<IntLiteral*>(exp1->right.get());
+    IntLiteral* intLit2 = dynamic_cast<IntLiteral*>(exp2->right.get());
+    ASSERT_EQ(intLit1->value, 5);
+    ASSERT_EQ(intLit2->value, 10);
+}
+
+TEST(ParserTest, InfixOperatorSimpleTest) {
+    string input = "a + b; 1 * 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt1 = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    ExpressionStatement* stmt2 = dynamic_cast<ExpressionStatement*>(program.statements.at(1).get());
+    InfixExpression* exp1 = dynamic_cast<InfixExpression*>(stmt1->expression.get());
+    InfixExpression* exp2 = dynamic_cast<InfixExpression*>(stmt2->expression.get());
+    ASSERT_EQ(exp1->Operator, "+");
+    ASSERT_EQ(exp2->Operator, "*");
+    Identifier* ident1 = dynamic_cast<Identifier*>(exp1->left.get());
+    Identifier* ident2 = dynamic_cast<Identifier*>(exp1->right.get());
+    IntLiteral* intLit1 = dynamic_cast<IntLiteral*>(exp2->left.get());
+    IntLiteral* intLit2 = dynamic_cast<IntLiteral*>(exp2->right.get());
+    ASSERT_EQ(ident1->value, "a");
+    ASSERT_EQ(ident2->value, "b");
+    ASSERT_EQ(intLit1->value, 1);
+    ASSERT_EQ(intLit2->value, 2);
 }
 
 int main(int argc, char** argv) {

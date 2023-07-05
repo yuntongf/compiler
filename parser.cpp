@@ -40,9 +40,11 @@ class Parser {
     void parserExpressionStatement(ExpressionStatement* statement);
 
     /* Expressions */
-    Expression* parseIdentifier();
-    Expression* parseIntLiteral();
-    Expression* parseExpression(int precedence);
+    unique_ptr<Expression> parseIdentifier();
+    unique_ptr<Expression> parseIntLiteral();
+    unique_ptr<Expression> parseExpression(int precedence);
+    unique_ptr<Expression> parsePrefixExpression();
+    unique_ptr<Expression> parseInfixExpression(unique_ptr<Expression>& leftExpression);
     // void prefixParser(Expression* expression);
     // void infixParser(Expression* expression); // argument is the left side of the infix operator
 };
@@ -98,7 +100,7 @@ void Parser::parseStatement(Program* program) {
         ExpressionStatement statement = ExpressionStatement();
         parserExpressionStatement(&statement);
         if (&statement != nullptr) {
-            program->statements.push_back(make_unique<ExpressionStatement>(statement));
+            program->statements.push_back(make_unique<ExpressionStatement>(statement.token, statement.expression));
         }
     }
 }
@@ -130,7 +132,7 @@ void Parser::parseLetStatement(LetStatement* statement) {
                     Identifier ident;
                     ident.token = currTok;
                     ident.value = currTok.literal;
-                    statement->value = ident;
+                    statement->value = &ident;
                 }
             }
         }
@@ -145,8 +147,7 @@ void Parser::parseReturnStatement(ReturnStatement* statement) {
 }
 void Parser::parserExpressionStatement(ExpressionStatement* stmt) {
     stmt->token = currTok;
-    Expression* expression = parseExpression(LOWEST);
-    stmt->expression = *expression;
+    stmt->expression = parseExpression(LOWEST);
     /* Optional semicolon */
     if (nextTok.type == types.SEMICOLON) {
         readToken();
@@ -155,32 +156,79 @@ void Parser::parserExpressionStatement(ExpressionStatement* stmt) {
 
 
 /************************** Expressions ****************************/
-using pfunc = Expression* (Parser::*) ();
-
-map<string, pfunc> prefixParsers = {
+using pPrefixParser = unique_ptr<Expression> (Parser::*) ();
+using pInfixParser = unique_ptr<Expression> (Parser::*) (unique_ptr<Expression>& leftExpression);
+map<string, pPrefixParser> prefixParsers = {
     {types.IDENT, &Parser::parseIdentifier},
-    {types.INT, &Parser::parseIntLiteral}
+    {types.INT, &Parser::parseIntLiteral},
+    {types.SURPRISE, &Parser::parsePrefixExpression},
+    {types.MINUS, &Parser::parsePrefixExpression}
+};
+map<string, pInfixParser> infixParsers = {
+    {types.EQ, &Parser::parseInfixExpression},
+    {types.NOT_EQ, &Parser::parseInfixExpression},
+    {types.LESS, &Parser::parseInfixExpression},
+    {types.GREATER, &Parser::parseInfixExpression},
+    {types.PLUS, &Parser::parseInfixExpression},
+    {types.MINUS, &Parser::parseInfixExpression},
+    {types.SLASH, &Parser::parseInfixExpression},
+    {types.ASTERISK, &Parser::parseInfixExpression}
+};
+map<string, int> precedences = {
+    {types.EQ, EQUALS},
+    {types.NOT_EQ, EQUALS},
+    {types.LESS, LESSGREATER},
+    {types.GREATER, LESSGREATER},
+    {types.PLUS, SUM},
+    {types.MINUS, SUM},
+    {types.SLASH, PRODUCT},
+    {types.ASTERISK, PRODUCT}
+
 };
 
-Expression* Parser::parseExpression(int precedence) {
-    pfunc prefixParser = prefixParsers[currTok.type];
+unique_ptr<Expression> Parser::parseExpression(int precedence) {
+    pPrefixParser prefixParser = prefixParsers[currTok.type];
     if (prefixParser == nullptr) return nullptr;
-    return (this->*prefixParser)();
+    unique_ptr<Expression> leftExpression = (this->*prefixParser)();
+
+    int nextPrecedence = precedences[nextTok.type];
+    while (nextTok.type != types.SEMICOLON && precedence < nextPrecedence) {
+        pInfixParser infixParser = infixParsers[nextTok.type];
+        if (infixParser == nullptr) return leftExpression;
+        readToken();
+        leftExpression = (this->*infixParser)(leftExpression);
+    }
+    return leftExpression;
 }
 
-Expression* Parser::parseIdentifier() {
+unique_ptr<Expression> Parser::parseIdentifier() {
     // create an identifier on heap and return it's address
     Identifier ident = Identifier();
     ident.token = currTok;
     ident.value = currTok.literal;
-    return make_unique<Identifier>(ident).get();
+    unique_ptr<Identifier> temp = make_unique<Identifier>(ident);
+    return temp;
 }
 
-Expression* Parser::parseIntLiteral() {
-    IntLiteral intLit = IntLiteral();
-    intLit.token = currTok;
-    intLit.value = stoi(currTok.literal);
-    return make_unique<IntLiteral>(intLit).get();
+unique_ptr<Expression> Parser::parseIntLiteral() {
+    int value = stoi(currTok.literal);
+    unique_ptr<Expression> res = make_unique<IntLiteral>(currTok, value);
+    return res;
 }
 
+unique_ptr<Expression> Parser::parsePrefixExpression() {
+    Token tok = currTok;
+    string Operator = currTok.literal;
+    readToken();
+    unique_ptr<Expression> right = parseExpression(PREFIX);
+    return make_unique<PrefixExpression>(tok, Operator, right);
+}
+
+unique_ptr<Expression> Parser::parseInfixExpression(unique_ptr<Expression>& leftExpression) {
+    Token tok = currTok;
+    int precedence = precedences[currTok.type];
+    readToken();
+    unique_ptr<Expression> right = parseExpression(precedence);
+    return make_unique<InfixExpression>(tok, tok.literal, leftExpression, right);
+}
 
