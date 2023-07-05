@@ -62,6 +62,40 @@ TEST(ParserTest, ReturnTest) {
     }
 }
 
+TEST(ParserTest, SerializeTest) {
+    string input = "let a = b;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    cout << program.serialize();
+}
+
+TEST(ParserTest, SingleIdentifierTest) {
+    string input = "foo;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    Statement* temp = program.statements.at(0).get();
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(temp);
+    ASSERT_EQ(stmt->token.literal, "foo");
+}
+
+TEST(ParserTest, IntLiteralTest) {
+    string input = "5;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    Statement* temp = program.statements.at(0).get();
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(temp);
+    ASSERT_EQ(stmt->token.literal, "5");
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
