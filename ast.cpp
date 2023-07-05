@@ -13,7 +13,7 @@ class Node {
     virtual string serialize() const = 0;
 };
 
-/* Expressions */
+/************************* Expressions *********************/
 class Expression : public Node {
     public:
     Expression() = default;
@@ -36,6 +36,9 @@ class IntLiteral : public Expression {
     public:
     Token token;
     int value;
+
+    IntLiteral(Token tok, int val) : token(tok), value(val) {};
+
     string getLiteral() override {
         return token.literal;
     }
@@ -43,8 +46,40 @@ class IntLiteral : public Expression {
         return token.literal;
     }
 };
+class PrefixExpression : public Expression {
+    public:
+    Token token;
+    string Operator;
+    unique_ptr<Expression> right;
+    
+    PrefixExpression() = default;
+    PrefixExpression(Token tok, string Operator, unique_ptr<Expression>& right) : token(tok), Operator(Operator), right(move(right)) {};
 
-/* Statements */
+    string getLiteral() final override {
+        return token.literal;
+    };
+    string serialize() const override {
+        return token.literal;
+    }
+};
+class InfixExpression : public Expression {
+    public:
+    Token token;
+    string Operator;
+    unique_ptr<Expression> left;
+    unique_ptr<Expression> right;
+
+    InfixExpression() = default;
+    InfixExpression(Token tok, string Operator, unique_ptr<Expression>& left, unique_ptr<Expression>& right) : token(tok), Operator(Operator), left(move(left)), right(move(right)) {};
+
+    string getLiteral() final override {
+        return token.literal;
+    };
+    string serialize() const override {
+        return token.literal;
+    };
+};
+/************************* Statements ************************/
 class Statement : public Node {
     public:
     Statement() = default;
@@ -57,7 +92,7 @@ class LetStatement: public Statement {
     public:
     Token token;
     Identifier identifier;
-    Expression value;
+    Expression* value;
     LetStatement() = default;
     string getLiteral() override {
         return token.literal;
@@ -67,14 +102,14 @@ class LetStatement: public Statement {
                 + " " 
                 + identifier.serialize() 
                 + " = " 
-                + value.serialize() + ";";
+                + value->serialize() + ";";
         
     };
 };
 class ReturnStatement: public Statement {
     public:
     Token token;
-    Expression value;
+    Expression* value;
 
     ReturnStatement() = default;
 
@@ -83,27 +118,31 @@ class ReturnStatement: public Statement {
     }
     
     string serialize() const final override {
-        return token.literal + " " + value.serialize() + ";";
+        return token.literal + " " + value->serialize() + ";";
     }
 };
 /* To allow for a single line expression like "x + 5;"*/
 class ExpressionStatement: public Statement {
     public:
     Token token;
-    Expression expression;
+    unique_ptr<Expression> expression;
 
-    ExpressionStatement() = default;
+    ExpressionStatement() {
+        expression = nullptr;
+    };
+
+    ExpressionStatement(Token tok, unique_ptr<Expression>& express): token(tok), expression(move(express)) {};
 
     string getLiteral() {
         return token.literal;
     };
 
     string serialize() const final override {
-        return expression.serialize();
+        return "";
     }
 };
 
-/* Program (root node)*/ 
+/*********************** Program (root node) ********************/ 
 class Program : public Node {
     public:
     vector<unique_ptr<Statement>> statements;
