@@ -9,7 +9,6 @@ using namespace std;
 
 class Node {
     public:
-    virtual string getLiteral() = 0;
     virtual string serialize() const = 0;
 };
 
@@ -18,16 +17,12 @@ class Expression : public Node {
     public:
     Expression() = default;
     virtual ~Expression() = default;
-    virtual string getLiteral() {return"";};
-    virtual string serialize() const {return "aha";};
+    virtual string serialize() const {return "";};
 };
 class Identifier : public Expression {
     public:
     Token token;
     string value;
-    string getLiteral() override {
-        return token.literal;
-    };
     string serialize() const final override {
         return value;
     }
@@ -39,9 +34,17 @@ class IntLiteral : public Expression {
 
     IntLiteral(Token tok, int val) : token(tok), value(val) {};
 
-    string getLiteral() override {
+    string serialize() const final override {
         return token.literal;
     }
+};
+class BoolLiteral : public Expression {
+    public:
+    Token token;
+    bool value;
+
+    BoolLiteral(Token tok, bool val) : token(tok), value(val){};
+
     string serialize() const final override {
         return token.literal;
     }
@@ -55,11 +58,8 @@ class PrefixExpression : public Expression {
     PrefixExpression() = default;
     PrefixExpression(Token tok, string Operator, unique_ptr<Expression>& right) : token(tok), Operator(Operator), right(move(right)) {};
 
-    string getLiteral() final override {
-        return token.literal;
-    };
     string serialize() const override {
-        return token.literal;
+        return Operator + right.get()->serialize();
     }
 };
 class InfixExpression : public Expression {
@@ -72,11 +72,8 @@ class InfixExpression : public Expression {
     InfixExpression() = default;
     InfixExpression(Token tok, string Operator, unique_ptr<Expression>& left, unique_ptr<Expression>& right) : token(tok), Operator(Operator), left(move(left)), right(move(right)) {};
 
-    string getLiteral() final override {
-        return token.literal;
-    };
     string serialize() const override {
-        return token.literal;
+        return "(" + left.get()->serialize() + " " + Operator + " " + right.get()->serialize() + ")";
     };
 };
 /************************* Statements ************************/
@@ -92,33 +89,30 @@ class LetStatement: public Statement {
     public:
     Token token;
     Identifier identifier;
-    Expression* value;
+    unique_ptr<Expression> value;
+
     LetStatement() = default;
-    string getLiteral() override {
-        return token.literal;
-    }
+    LetStatement(Token tok, Identifier ident, unique_ptr<Expression>& val) : token(tok), identifier(ident), value(move(val)) {};
+    
     string serialize() const final override {
         return token.literal 
                 + " " 
                 + identifier.serialize() 
                 + " = " 
-                + value->serialize() + ";";
+                + value.get()->serialize() + ";";
         
     };
 };
 class ReturnStatement: public Statement {
     public:
     Token token;
-    Expression* value;
+    unique_ptr<Expression> value;
 
     ReturnStatement() = default;
-
-    string getLiteral() override {
-        return token.literal;
-    }
+    ReturnStatement(Token tok, unique_ptr<Expression>& val) : token(tok), value(move(val)) {}
     
     string serialize() const final override {
-        return token.literal + " " + value->serialize() + ";";
+        return token.literal + " " + value.get()->serialize() + ";";
     }
 };
 /* To allow for a single line expression like "x + 5;"*/
@@ -133,12 +127,8 @@ class ExpressionStatement: public Statement {
 
     ExpressionStatement(Token tok, unique_ptr<Expression>& express): token(tok), expression(move(express)) {};
 
-    string getLiteral() {
-        return token.literal;
-    };
-
     string serialize() const final override {
-        return "";
+        return expression.get()->serialize();
     }
 };
 
@@ -146,14 +136,6 @@ class ExpressionStatement: public Statement {
 class Program : public Node {
     public:
     vector<unique_ptr<Statement>> statements;
-
-    string getLiteral() {
-        if (statements.size() > 0) {
-            return statements[0]->getLiteral();
-        } else {
-            return "";
-        }
-    };
 
     string serialize() const final override {
         string res = "";

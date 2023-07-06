@@ -4,7 +4,6 @@
 #include<map>
 
 using namespace std;
-
 enum { // determines the "right-binding power" of an operation
     _ = 0,
     LOWEST,
@@ -15,7 +14,6 @@ enum { // determines the "right-binding power" of an operation
     PREFIX,
     CALL
 };
-
 class Parser {
     Lexer l;
     Token currTok;
@@ -42,6 +40,7 @@ class Parser {
     /* Expressions */
     unique_ptr<Expression> parseIdentifier();
     unique_ptr<Expression> parseIntLiteral();
+    unique_ptr<Expression> parseBoolLiteral();
     unique_ptr<Expression> parseExpression(int precedence);
     unique_ptr<Expression> parsePrefixExpression();
     unique_ptr<Expression> parseInfixExpression(unique_ptr<Expression>& leftExpression);
@@ -81,10 +80,10 @@ int Parser::parseProgram(Program* program) {
 void Parser::parseStatement(Program* program) {
     // Let statements
     if (currTok.type == types.LET) {
-        LetStatement statement = LetStatement();
-        parseLetStatement(&statement);
-        if (&statement != nullptr) {
-            program->statements.push_back(make_unique<LetStatement>(statement));
+        LetStatement stmt = LetStatement();
+        parseLetStatement(&stmt);
+        if (&stmt != nullptr) {
+            program->statements.push_back(make_unique<LetStatement>(stmt.token, stmt.identifier, stmt.value));
         }
     } 
     // Return statements
@@ -92,7 +91,7 @@ void Parser::parseStatement(Program* program) {
         ReturnStatement statement = ReturnStatement();
         parseReturnStatement(&statement);
         if (&statement != nullptr) {
-            program->statements.push_back(make_unique<ReturnStatement>(statement));
+            program->statements.push_back(make_unique<ReturnStatement>(statement.token, statement.value));
         }
     } 
     // Expression statements
@@ -124,30 +123,34 @@ void Parser::parseLetStatement(LetStatement* statement) {
             statement = nullptr;
             return;
         } else {
+            readToken(); // currTok is '='
             readToken();
-            // TODO: parse expression
-            while (currTok.type != types.SEMICOLON) {
-                readToken();
-                if (currTok.type == types.IDENT) {
-                    Identifier ident;
-                    ident.token = currTok;
-                    ident.value = currTok.literal;
-                    statement->value = &ident;
-                }
+            statement->value = move(parseExpression(LOWEST));
+            
+            if (nextTok.type == types.SEMICOLON) readToken();
+            else {
+                errors.push_back("Expected ';', but got"+currTok.literal);
+                statement == nullptr;
+                return;
             }
         }
     }
 }
 void Parser::parseReturnStatement(ReturnStatement* statement) {
-    statement->token = currTok;
-    // TODO: parse expression
-    while (currTok.type != types.SEMICOLON) {
-        readToken();
+    statement->token = currTok; // current token is 'return'
+    readToken();
+    // parse expression
+    statement->value = move(parseExpression(LOWEST));
+    if (nextTok.type == types.SEMICOLON) readToken();
+    else {
+        errors.push_back("Expected ';', but got"+currTok.literal);
+        statement == nullptr;
+        return;
     }
 }
 void Parser::parserExpressionStatement(ExpressionStatement* stmt) {
     stmt->token = currTok;
-    stmt->expression = parseExpression(LOWEST);
+    stmt->expression = move(parseExpression(LOWEST));
     /* Optional semicolon */
     if (nextTok.type == types.SEMICOLON) {
         readToken();
@@ -162,6 +165,8 @@ using pInfixParser = unique_ptr<Expression> (Parser::*) (unique_ptr<Expression>&
 map<string, pPrefixParser> prefixParsers = {
     {types.IDENT, &Parser::parseIdentifier},
     {types.INT, &Parser::parseIntLiteral},
+    {types.TRUE, &Parser::parseBoolLiteral},
+    {types.FALSE, &Parser::parseBoolLiteral},
     {types.SURPRISE, &Parser::parsePrefixExpression},
     {types.MINUS, &Parser::parsePrefixExpression}
 };
@@ -220,6 +225,13 @@ unique_ptr<Expression> Parser::parseIntLiteral() {
     int value = stoi(currTok.literal);
     unique_ptr<Expression> res = make_unique<IntLiteral>(currTok, value);
     return res;
+}
+
+unique_ptr<Expression> Parser::parseBoolLiteral() {
+    bool boolean;
+    if (currTok.type == types.TRUE) boolean = true;
+    else boolean = false;
+    return make_unique<BoolLiteral>(currTok, boolean);
 }
 
 unique_ptr<Expression> Parser::parsePrefixExpression() {
