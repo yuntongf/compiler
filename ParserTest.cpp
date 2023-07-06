@@ -22,13 +22,15 @@ TEST(ParserTest, LetStatementTest) {
             << "instead contains" << program.statements.size() << endl;
     }
     string identifiers[2] = {"x", "y"};
-    string values[2] = {"5", "10"};
+    int values[2] = {5, 10};
+    cout << "serialze" << program.serialize() << endl;
     for (int i = 0; i < program.statements.size(); i++) {
         Statement* temp = program.statements.at(i).get();
-        LetStatement statement = dynamic_cast<LetStatement&>(*temp);
-        ASSERT_EQ(statement.token.type, types.LET);
-        ASSERT_EQ(statement.identifier.value, identifiers[i]);
-        // ASSERT_EQ(statement.value.getLiteral(), values[i]);
+        LetStatement* statement = dynamic_cast<LetStatement*>(temp);
+        ASSERT_EQ(statement->token.type, types.LET);
+        ASSERT_EQ(statement->identifier.value, identifiers[i]);
+        IntLiteral* intLit = dynamic_cast<IntLiteral*>(statement->value.get());
+        ASSERT_EQ(intLit->value, values[i]);
     }
 }
 
@@ -56,21 +58,41 @@ TEST(ParserTest, ReturnTest) {
     if (error) FAIL() << "test failed due to error in parser..." << endl;
     for (int i = 0; i < program.statements.size(); i++) {
         Statement* temp = program.statements.at(i).get();
-        ReturnStatement statement = dynamic_cast<ReturnStatement&>(*temp);
-        ASSERT_EQ(statement.token.type, types.RETURN);
-        ASSERT_EQ(statement.token.literal, "return");
+        ReturnStatement* statement = dynamic_cast<ReturnStatement*>(temp);
+        ASSERT_EQ(statement->token.type, types.RETURN);
+        ASSERT_EQ(statement->token.literal, "return");
     }
 }
 
-// TEST(ParserTest, SerializeTest) {
-//     string input = "let a = b;";
-//     Lexer l = Lexer(input);
-//     Parser p = Parser(l);
-//     auto program = Program();
-//     int error = p.parseProgram(&program);
-//     if (error) FAIL() << "test failed due to error in parser..." << endl;
-//     cout << program.serialize();
-// }
+TEST(ParserTest, SerializeTest) {
+    string input = "let a = b;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ASSERT_EQ(input, program.serialize());
+}
+
+TEST(ParserTest, LetInfixExpressionTest) {
+    string input = "let a = 2 + 3 * 5;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ASSERT_EQ("let a = (2 + (3 * 5));", program.serialize());
+}
+
+TEST(ParserTest, ReturnInfixExpressionTest) {
+    string input = "return 2 - 3 / 5;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ASSERT_EQ("return (2 - (3 / 5));", program.serialize());
+}
 
 TEST(ParserTest, SingleIdentifierTest) {
     string input = "foo;";
@@ -98,6 +120,20 @@ TEST(ParserTest, IntLiteralTest) {
     ASSERT_EQ(stmt->token.literal, "5");
     IntLiteral* intLit = dynamic_cast<IntLiteral*>(stmt->expression.get());
     ASSERT_EQ(intLit->value, 5);
+}
+
+TEST(ParserTest, BoolLiteralTest) {
+    string input = "false;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    Statement* temp = program.statements.at(0).get();
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(temp);
+    ASSERT_EQ(stmt->token.literal, "false");
+    BoolLiteral* boolLit = dynamic_cast<BoolLiteral*>(stmt->expression.get());
+    ASSERT_EQ(boolLit->value, false);
 }
 
 TEST(ParserTest, PrefixOperatorTest) {
@@ -140,6 +176,26 @@ TEST(ParserTest, InfixOperatorSimpleTest) {
     ASSERT_EQ(ident2->value, "b");
     ASSERT_EQ(intLit1->value, 1);
     ASSERT_EQ(intLit2->value, 2);
+}
+
+TEST(ParserTest, InfixSerializeTest) {
+    string input = "a + b * c;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ASSERT_EQ("(a + (b * c))", program.serialize());
+}
+
+TEST(ParserTest, InfixLongerSerializeTest) {
+    string input = "a + b * c - d / c;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ASSERT_EQ("(a + ((b * c) - (d / c)))", program.serialize());
 }
 
 int main(int argc, char** argv) {
