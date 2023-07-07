@@ -73,7 +73,12 @@ class InfixExpression : public Expression {
     InfixExpression(Token tok, string Operator, unique_ptr<Expression>& left, unique_ptr<Expression>& right) : token(tok), Operator(Operator), left(move(left)), right(move(right)) {};
 
     string serialize() const override {
-        return "(" + left.get()->serialize() + " " + Operator + " " + right.get()->serialize() + ")";
+        // cout << "parsing infix expression" << endl;
+        // cout << "left expression is" << left.get()->serialize() << endl;
+        // cout << "right expression is" << right.get()->serialize() << endl;
+        string res =  "(" + left.get()->serialize() + " " + Operator + " " + right.get()->serialize() + ")";
+        // cout << res << endl;
+        return res;
     };
 };
 /************************* Statements ************************/
@@ -115,6 +120,7 @@ class ReturnStatement: public Statement {
         return token.literal + " " + value.get()->serialize() + ";";
     }
 };
+
 /* To allow for a single line expression like "x + 5;"*/
 class ExpressionStatement: public Statement {
     public:
@@ -128,7 +134,9 @@ class ExpressionStatement: public Statement {
     ExpressionStatement(Token tok, unique_ptr<Expression>& express): token(tok), expression(move(express)) {};
 
     string serialize() const final override {
+        cout << "parsing expression statement" << endl;
         return expression.get()->serialize();
+        // return "";
     }
 };
 

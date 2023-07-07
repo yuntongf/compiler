@@ -41,9 +41,11 @@ class Parser {
     unique_ptr<Expression> parseIdentifier();
     unique_ptr<Expression> parseIntLiteral();
     unique_ptr<Expression> parseBoolLiteral();
+
     unique_ptr<Expression> parseExpression(int precedence);
     unique_ptr<Expression> parsePrefixExpression();
     unique_ptr<Expression> parseInfixExpression(unique_ptr<Expression>& leftExpression);
+    unique_ptr<Expression> parseGroupedExpression();
     // void prefixParser(Expression* expression);
     // void infixParser(Expression* expression); // argument is the left side of the infix operator
 };
@@ -60,7 +62,6 @@ vector<string> Parser::getErrors() {
 
 int Parser::parseProgram(Program* program) {
     while (currTok.type != types.EoF) {
-        // cout << "start parsing statements";
         parseStatement(program);
         readToken();
     }
@@ -107,7 +108,6 @@ void Parser::parseStatement(Program* program) {
 void Parser::parseLetStatement(LetStatement* statement) {
     statement->token = currTok;
     if (nextTok.type != types.IDENT) {
-        // cout << "No identifier" << endl;
         errors.push_back("No identifiers after 'let'");
         statement = nullptr;
         return;
@@ -118,7 +118,6 @@ void Parser::parseLetStatement(LetStatement* statement) {
         statement->identifier = identifier;
 
         if (nextTok.type != types.ASSIGN) {
-            // cout << "No assign '='";
             errors.push_back("Expected '=', but got "+nextTok.literal);
             statement = nullptr;
             return;
@@ -168,7 +167,8 @@ map<string, pPrefixParser> prefixParsers = {
     {types.TRUE, &Parser::parseBoolLiteral},
     {types.FALSE, &Parser::parseBoolLiteral},
     {types.SURPRISE, &Parser::parsePrefixExpression},
-    {types.MINUS, &Parser::parsePrefixExpression}
+    {types.MINUS, &Parser::parsePrefixExpression},
+    {types.LPAREN, &Parser::parseGroupedExpression}
 };
 map<string, pInfixParser> infixParsers = {
     {types.EQ, &Parser::parseInfixExpression},
@@ -178,7 +178,7 @@ map<string, pInfixParser> infixParsers = {
     {types.PLUS, &Parser::parseInfixExpression},
     {types.MINUS, &Parser::parseInfixExpression},
     {types.SLASH, &Parser::parseInfixExpression},
-    {types.ASTERISK, &Parser::parseInfixExpression}
+    {types.ASTERISK, &Parser::parseInfixExpression},
 };
 map<string, int> precedences = {
     {types.EQ, EQUALS},
@@ -203,9 +203,12 @@ unique_ptr<Expression> Parser::parseExpression(int precedence) {
     } else {
         nextPrecedence = precedences[nextTok.type];
     }
-    while (nextTok.type != types.SEMICOLON && precedence < nextPrecedence) {
+    while (nextTok.type != types.SEMICOLON && nextTok.type != types.EoF && precedence < nextPrecedence) {
+        // if (nextTok.type == types.RPAREN) readToken();
         pInfixParser infixParser = infixParsers[nextTok.type];
-        if (infixParser == nullptr) return leftExpression;
+        if (infixParser == nullptr) {
+            return leftExpression;
+        }
         readToken();
         leftExpression = (this->*infixParser)(leftExpression);
     }
@@ -248,5 +251,15 @@ unique_ptr<Expression> Parser::parseInfixExpression(unique_ptr<Expression>& left
     readToken();
     unique_ptr<Expression> right = parseExpression(precedence);
     return make_unique<InfixExpression>(tok, tok.literal, leftExpression, right);
+}
+
+unique_ptr<Expression> Parser::parseGroupedExpression() {
+    readToken(); // skip '('
+    unique_ptr<Expression> exp = parseExpression(LOWEST);
+    // test for back parenthesis
+    if (nextTok.type != types.RPAREN) return nullptr;
+    else readToken();
+    
+    return exp;
 }
 

@@ -29,7 +29,7 @@ class Lexer {
     /* Read the next character in input, if reach the 
     end, set current character to NUL */
     void readChar() {
-        if (nextPos >= input.length()) {
+        if (nextPos > input.length()) {
             currChar = 0;
         } else {
             currChar = input[nextPos];
