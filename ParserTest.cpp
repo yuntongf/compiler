@@ -1,6 +1,7 @@
 #include<iostream>
 #include<gtest/gtest.h>
 #include"parser.cpp"
+#include<map>
 
 TEST(ParserTest, LetStatementTest) {
     string input = 
@@ -179,7 +180,7 @@ TEST(ParserTest, InfixOperatorSimpleTest) {
 }
 
 TEST(ParserTest, InfixSerializeTest) {
-    string input = "a + b * c;";
+    string input = "a + b * c";
     Lexer l = Lexer(input);
     Parser p = Parser(l);
     auto program = Program();
@@ -189,13 +190,41 @@ TEST(ParserTest, InfixSerializeTest) {
 }
 
 TEST(ParserTest, InfixLongerSerializeTest) {
-    string input = "a + b * c - d / c;";
+    string input = "a + b * c - d / c";
     Lexer l = Lexer(input);
     Parser p = Parser(l);
     auto program = Program();
     int error = p.parseProgram(&program);
     if (error) FAIL() << "test failed due to error in parser..." << endl;
     ASSERT_EQ("(a + ((b * c) - (d / c)))", program.serialize());
+}
+
+TEST(ParserTest, GroupedPrecedenceTest) {
+    map<string, string> tests = {
+        {"(1 + 2) + 3", "((1 + 2) + 3)"}
+    };
+    for (auto test : tests) {
+        Lexer l = Lexer(test.first);
+        Parser p = Parser(l);
+        auto program = Program();
+        int error = p.parseProgram(&program);
+        if (error) FAIL() << "test failed due to error in parser..." << endl;
+        ASSERT_EQ(program.serialize(), test.second);
+    }
+}
+
+TEST(ParserTest, LongGroupedPrecedenceTest) {
+    map<string, string> tests = {
+        {"(--1 + 2) * 3", "((--1 + 2) * 3)"}
+    };
+    for (auto test : tests) {
+        Lexer l = Lexer(test.first);
+        Parser p = Parser(l);
+        auto program = Program();
+        int error = p.parseProgram(&program);
+        if (error) FAIL() << "test failed due to error in parser..." << endl;
+        ASSERT_EQ(program.serialize(), test.second);
+    }
 }
 
 int main(int argc, char** argv) {
