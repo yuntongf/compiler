@@ -35,7 +35,9 @@ class Parser {
     /* Statement*/
     void parseLetStatement(LetStatement* statement);
     void parseReturnStatement(ReturnStatement* statement);
-    void parserExpressionStatement(ExpressionStatement* statement);
+    void parseExpressionStatement(ExpressionStatement* statement);
+
+    unique_ptr<BlockStatement> parseBlockStatement();
 
     /* Expressions */
     unique_ptr<Expression> parseIdentifier();
@@ -46,10 +48,10 @@ class Parser {
     unique_ptr<Expression> parsePrefixExpression();
     unique_ptr<Expression> parseInfixExpression(unique_ptr<Expression>& leftExpression);
     unique_ptr<Expression> parseGroupedExpression();
+    unique_ptr<Expression> parseIfExpression();
     // void prefixParser(Expression* expression);
     // void infixParser(Expression* expression); // argument is the left side of the infix operator
 };
-
 
 void Parser::readToken() {
     currTok = nextTok;
@@ -98,7 +100,7 @@ void Parser::parseStatement(Program* program) {
     // Expression statements
     else {
         ExpressionStatement statement = ExpressionStatement();
-        parserExpressionStatement(&statement);
+        parseExpressionStatement(&statement);
         if (&statement != nullptr) {
             program->statements.push_back(make_unique<ExpressionStatement>(statement.token, statement.expression));
         }
@@ -147,13 +149,28 @@ void Parser::parseReturnStatement(ReturnStatement* statement) {
         return;
     }
 }
-void Parser::parserExpressionStatement(ExpressionStatement* stmt) {
+void Parser::parseExpressionStatement(ExpressionStatement* stmt) {
     stmt->token = currTok;
     stmt->expression = move(parseExpression(LOWEST));
     /* Optional semicolon */
     if (nextTok.type == types.SEMICOLON) {
         readToken();
     }
+}
+unique_ptr<BlockStatement> Parser::parseBlockStatement() {
+    Token tok = currTok;
+    readToken(); // skip '{'
+
+    Program program = Program();
+    while (currTok.type != types.RBRACE) {
+        if (currTok.type == types.EoF) {
+            errors.push_back("Expected '{' for block statement");
+            return nullptr;
+        }
+        parseStatement(&program);
+        readToken(); // skip ';'
+    }
+    return make_unique<BlockStatement>(tok, move(program.statements));
 }
 
 
@@ -168,7 +185,8 @@ map<string, pPrefixParser> prefixParsers = {
     {types.FALSE, &Parser::parseBoolLiteral},
     {types.SURPRISE, &Parser::parsePrefixExpression},
     {types.MINUS, &Parser::parsePrefixExpression},
-    {types.LPAREN, &Parser::parseGroupedExpression}
+    {types.LPAREN, &Parser::parseGroupedExpression},
+    {types.IF, &Parser::parseIfExpression}
 };
 map<string, pInfixParser> infixParsers = {
     {types.EQ, &Parser::parseInfixExpression},
@@ -261,5 +279,35 @@ unique_ptr<Expression> Parser::parseGroupedExpression() {
     else readToken();
     
     return exp;
+}
+
+unique_ptr<Expression> Parser::parseIfExpression() {
+    Token tok = currTok;
+    readToken(); // skip 'if'
+    if (currTok.type != types.LPAREN) {
+        errors.push_back("Expected '(', but instead got '" + currTok.literal + "'");
+        return nullptr;
+    } 
+
+    unique_ptr<Expression> condition = parseGroupedExpression();
+    if (condition == nullptr) {
+        errors.push_back("Cannot parse condition of if statement");
+        return nullptr;
+    } else readToken(); // skip ')'
+
+    if (currTok.type != types.LBRACE) {
+        errors.push_back("No block statement after if condition; Expected '{', but instead got '" + currTok.literal + "'");
+        return nullptr;
+    }
+    unique_ptr<BlockStatement> consequence = parseBlockStatement();
+    readToken(); // skip '}'
+
+    unique_ptr<BlockStatement> alternative = nullptr;
+    if (currTok.type == types.ELSE) {
+        readToken(); // skip 'else'
+        alternative = parseBlockStatement();
+    } 
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip ';'
+    return make_unique<IfExpression>(tok, condition, consequence, alternative);
 }
 

@@ -24,7 +24,6 @@ TEST(ParserTest, LetStatementTest) {
     }
     string identifiers[2] = {"x", "y"};
     int values[2] = {5, 10};
-    cout << "serialze" << program.serialize() << endl;
     for (int i = 0; i < program.statements.size(); i++) {
         Statement* temp = program.statements.at(i).get();
         LetStatement* statement = dynamic_cast<LetStatement*>(temp);
@@ -225,6 +224,45 @@ TEST(ParserTest, LongGroupedPrecedenceTest) {
         if (error) FAIL() << "test failed due to error in parser..." << endl;
         ASSERT_EQ(program.serialize(), test.second);
     }
+}
+
+TEST(ParserTest, IfElseTest) {
+    string input = "if (x < y) {x} else {y}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    IfExpression* exp = dynamic_cast<IfExpression*>(stmt->expression.get());
+    InfixExpression* condition = dynamic_cast<InfixExpression*>(exp->condition.get());
+    Identifier* x = dynamic_cast<Identifier*>(condition->left.get());
+    Identifier* y = dynamic_cast<Identifier*>(condition->right.get());
+    BlockStatement* bstmt = dynamic_cast<BlockStatement*>(exp->consequence.get());
+    ExpressionStatement* exp1 = dynamic_cast<ExpressionStatement*>(bstmt->statements.at(0).get());
+    Identifier* consequence = dynamic_cast<Identifier*>(exp1->expression.get());
+
+    BlockStatement* bstmt1 = dynamic_cast<BlockStatement*>(exp->alternative.get());
+    ExpressionStatement* exp2 = dynamic_cast<ExpressionStatement*>(bstmt1->statements.at(0).get());
+    Identifier* alternative = dynamic_cast<Identifier*>(exp2->expression.get());
+    ASSERT_EQ(x->value, "x");
+    ASSERT_EQ(y->value, "y");
+    ASSERT_EQ(condition->Operator, "<");
+    ASSERT_EQ(consequence->value, "x");
+    ASSERT_EQ(alternative->value, "y");
+    ASSERT_EQ(exp->serialize(), "if (x < y) {x} else {y}");
+}
+
+TEST(ParserTest, IfElseLongTest) {
+    string input = "if (x < y + 3) {let x = --3 + 4 * 5;} else { let y = x / y;}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    IfExpression* exp = dynamic_cast<IfExpression*>(stmt->expression.get());
+    ASSERT_EQ(exp->serialize(), "if (x < (y + 3)) {let x = (--3 + (4 * 5));} else {let y = (x / y);}");
 }
 
 int main(int argc, char** argv) {
