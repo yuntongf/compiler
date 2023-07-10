@@ -56,6 +56,11 @@ string IfExpression::serialize() const {
             consequence.get()->serialize() + alt;
 }
 
+CallExpression::CallExpression(Token tok, unique_ptr<Expression>& function, vector<unique_ptr<Expression>>&& args) : token(tok), function(move(function)), args(move(args)) {};
+string CallExpression::serialize() const {
+    return "";
+}
+
 /************************* Statements ************************/
 Statement::Statement() = default;
 Statement::~Statement() = default;

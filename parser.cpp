@@ -50,6 +50,7 @@ class Parser {
     unique_ptr<Expression> parseInfixExpression(unique_ptr<Expression>& leftExpression);
     unique_ptr<Expression> parseGroupedExpression();
     unique_ptr<Expression> parseIfExpression();
+    unique_ptr<Expression> parseCallExpression(unique_ptr<Expression>& function);
     // void prefixParser(Expression* expression);
     // void infixParser(Expression* expression); // argument is the left side of the infix operator
 };
@@ -199,6 +200,7 @@ map<string, pInfixParser> infixParsers = {
     {types.MINUS, &Parser::parseInfixExpression},
     {types.SLASH, &Parser::parseInfixExpression},
     {types.ASTERISK, &Parser::parseInfixExpression},
+    {types.LPAREN, &Parser::parseCallExpression}
 };
 map<string, int> precedences = {
     {types.EQ, EQUALS},
@@ -208,7 +210,8 @@ map<string, int> precedences = {
     {types.PLUS, SUM},
     {types.MINUS, SUM},
     {types.SLASH, PRODUCT},
-    {types.ASTERISK, PRODUCT}
+    {types.ASTERISK, PRODUCT},
+    {types.LPAREN, CALL}
 
 };
 
@@ -301,6 +304,28 @@ unique_ptr<Expression> Parser::parseInfixExpression(unique_ptr<Expression>& left
     readToken();
     unique_ptr<Expression> right = parseExpression(precedence);
     return make_unique<InfixExpression>(tok, tok.literal, leftExpression, right);
+}
+
+unique_ptr<Expression> Parser::parseCallExpression(unique_ptr<Expression>& function) {
+    Token tok = Token{types.FUNCTION, function.get()->serialize()}; // token type is function
+    vector<unique_ptr<Expression>> args = {};
+    readToken(); // skip '('
+    while (currTok.type != types.RPAREN) {
+        unique_ptr<Expression> param = parseExpression(LOWEST);
+        if (param == nullptr) {
+            errors.push_back("Failed to parse parameters of fn");
+            return nullptr;
+        }
+        args.push_back(move(param));
+        readToken(); // skip current identifier
+        if (currTok.type == types.COMMA) readToken(); // skip 
+        else if (currTok.type != types.RPAREN) {
+            errors.push_back("Expect ',' or ')', but instead got " + currTok.literal);
+            return nullptr;
+        }
+    }
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
+    return make_unique<CallExpression>(tok, function, move(args));
 }
 
 unique_ptr<Expression> Parser::parseGroupedExpression() {
