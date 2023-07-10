@@ -43,6 +43,7 @@ class Parser {
     unique_ptr<Expression> parseIdentifier();
     unique_ptr<Expression> parseIntLiteral();
     unique_ptr<Expression> parseBoolLiteral();
+    unique_ptr<Expression> parseFnLiteral();
 
     unique_ptr<Expression> parseExpression(int precedence);
     unique_ptr<Expression> parsePrefixExpression();
@@ -186,7 +187,8 @@ map<string, pPrefixParser> prefixParsers = {
     {types.SURPRISE, &Parser::parsePrefixExpression},
     {types.MINUS, &Parser::parsePrefixExpression},
     {types.LPAREN, &Parser::parseGroupedExpression},
-    {types.IF, &Parser::parseIfExpression}
+    {types.IF, &Parser::parseIfExpression},
+    {types.FUNCTION, &Parser::parseFnLiteral}
 };
 map<string, pInfixParser> infixParsers = {
     {types.EQ, &Parser::parseInfixExpression},
@@ -255,6 +257,36 @@ unique_ptr<Expression> Parser::parseBoolLiteral() {
     return make_unique<BoolLiteral>(currTok, boolean);
 }
 
+unique_ptr<Expression> Parser::parseFnLiteral() {
+    Token tok = currTok;
+    readToken(); // skip 'fn'
+    vector<unique_ptr<Expression>> params = {};
+    // parse params
+    if (currTok.type != types.LPAREN) {
+        errors.push_back("Expected (, but instead got" + nextTok.literal);
+        return nullptr;
+    } else {
+        readToken(); // skip '('
+        while (currTok.type != types.RPAREN) {
+            unique_ptr<Expression> param = parseIdentifier();
+            if (param == nullptr) {
+                errors.push_back("Failed to parse parameters of fn");
+                return nullptr;
+            }
+            params.push_back(move(param));
+            readToken(); // skip current identifier
+            if (currTok.type == types.COMMA) readToken(); // skip 
+            else if (currTok.type != types.RPAREN) {
+                errors.push_back("Expect ',' or ')', but instead got " + currTok.literal);
+                return nullptr;
+            }
+        }
+        readToken(); // skip ')'
+        unique_ptr<BlockStatement> body = parseBlockStatement();
+        if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
+        return make_unique<FnLiteral>(tok, move(params), body);
+    }
+}
 unique_ptr<Expression> Parser::parsePrefixExpression() {
     Token tok = currTok;
     string Operator = currTok.literal;
@@ -307,7 +339,7 @@ unique_ptr<Expression> Parser::parseIfExpression() {
         readToken(); // skip 'else'
         alternative = parseBlockStatement();
     } 
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip ';'
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
     return make_unique<IfExpression>(tok, condition, consequence, alternative);
 }
 

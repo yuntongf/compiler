@@ -75,8 +75,6 @@ class BlockStatement : public Statement {
     string serialize();
 };
 // Expressions
-
-
 class IntLiteral : public Expression {
     public:
     Token token;
@@ -90,6 +88,15 @@ class BoolLiteral : public Expression {
     bool value;
     BoolLiteral(Token tok, bool val);
     string serialize() const final override;
+};
+class FnLiteral : public Expression {
+    public:
+    Token token;
+    vector<unique_ptr<Expression>> params;
+    unique_ptr<BlockStatement> body;
+    FnLiteral(Token tok, vector<unique_ptr<Expression>>&& params, unique_ptr<BlockStatement>& body);
+    string serialize() const override;
+
 };
 class PrefixExpression : public Expression {
     public:
@@ -124,7 +131,6 @@ class IfExpression : public Expression {
     
     string serialize() const override;
 };
-
 
 /*********************** Program (root node) ********************/ 
 class Program : public Node {

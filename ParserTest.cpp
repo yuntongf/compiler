@@ -265,6 +265,34 @@ TEST(ParserTest, IfElseLongTest) {
     ASSERT_EQ(exp->serialize(), "if (x < (y + 3)) {let x = (--3 + (4 * 5));} else {let y = (x / y);}");
 }
 
+TEST(ParserTest, FnTest) {
+    string input = "fn(x, y) { return x + y; }";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    FnLiteral* exp = dynamic_cast<FnLiteral*>(stmt->expression.get());
+    Token tok = exp->token;
+    ASSERT_EQ(tok.literal, "fn");
+    string paramTests[] = {"x", "y"};
+    for (int i = 0; i < exp->params.size(); i++) {
+        Identifier* ident = dynamic_cast<Identifier*>(exp->params.at(i).get());
+        ASSERT_EQ(ident->serialize(), paramTests[i]);
+    }
+    BlockStatement* blc = exp->body.get();
+    ReturnStatement* returnStmt = dynamic_cast<ReturnStatement*>(blc->statements.at(0).get());
+    InfixExpression* infix = dynamic_cast<InfixExpression*>(returnStmt->value.get());
+    Identifier* x = dynamic_cast<Identifier*>(infix->left.get());
+    Identifier* y = dynamic_cast<Identifier*>(infix->right.get());
+    ASSERT_EQ(returnStmt->token.literal, "return");
+    ASSERT_EQ(x->value, "x");
+    ASSERT_EQ(infix->Operator, "+");
+    ASSERT_EQ(y->value, "y");
+    ASSERT_EQ(exp->serialize(), "fn (x, y) {return (x + y);}");
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

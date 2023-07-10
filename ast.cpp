@@ -16,6 +16,21 @@ string IntLiteral::serialize() const {return token.literal;};
 BoolLiteral::BoolLiteral(Token tok, bool val) : token(tok), value(val){};
 string BoolLiteral::serialize() const {return token.literal;}
 
+FnLiteral::FnLiteral(Token tok, vector<unique_ptr<Expression>>&& params, unique_ptr<BlockStatement>& body) : token(tok), params(move(params)), body(move(body)) {};
+string FnLiteral::serialize() const {
+    string paramStr = "(";
+    for (int i = 0; i < params.size(); i++) {
+        Expression* param = params.at(i).get();
+        paramStr += param->serialize();
+        if (i == params.size() - 1) {
+            paramStr += ")";
+        } else {
+            paramStr += ", ";
+        }
+    }
+    return "fn " + paramStr + " " + body.get()->serialize();
+}
+
 PrefixExpression::PrefixExpression() = default;
 PrefixExpression::PrefixExpression(Token tok, string Operator, unique_ptr<Expression>& right) : token(tok), Operator(Operator), right(move(right)) {};
 string PrefixExpression::serialize() const {
