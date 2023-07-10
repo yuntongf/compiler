@@ -293,6 +293,24 @@ TEST(ParserTest, FnTest) {
     ASSERT_EQ(exp->serialize(), "fn (x, y) {return (x + y);}");
 }
 
+TEST(ParserTest, CallFnTest) {
+    string input = "add(x, y);";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    CallExpression* exp = dynamic_cast<CallExpression*>(stmt->expression.get());
+    Token tok = exp->token;
+    ASSERT_EQ(tok.literal, "add");
+    string paramTests[] = {"x", "y"};
+    for (int i = 0; i < exp->args.size(); i++) {
+        Identifier* ident = dynamic_cast<Identifier*>(exp->args.at(i).get());
+        ASSERT_EQ(ident->serialize(), paramTests[i]);
+    }
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

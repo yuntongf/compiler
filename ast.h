@@ -131,6 +131,15 @@ class IfExpression : public Expression {
     
     string serialize() const override;
 };
+class CallExpression : public Expression {
+    public:
+    Token token;
+    unique_ptr<Expression> function;
+    vector<unique_ptr<Expression>> args;
+
+    CallExpression(Token tok, unique_ptr<Expression>& function, vector<unique_ptr<Expression>>&& args);
+    string serialize() const override;
+};
 
 /*********************** Program (root node) ********************/ 
 class Program : public Node {
