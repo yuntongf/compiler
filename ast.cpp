@@ -28,7 +28,7 @@ string FnLiteral::serialize() const {
             paramStr += ", ";
         }
     }
-    return "fn " + paramStr + " " + body.get()->serialize();
+    return "fn" + paramStr + body.get()->serialize();
 }
 
 PrefixExpression::PrefixExpression() = default;
@@ -58,7 +58,13 @@ string IfExpression::serialize() const {
 
 CallExpression::CallExpression(Token tok, unique_ptr<Expression>& function, vector<unique_ptr<Expression>>&& args) : token(tok), function(move(function)), args(move(args)) {};
 string CallExpression::serialize() const {
-    return "";
+    string paramStr = "(";
+    for (int i = 0; i < args.size(); i++) {
+        paramStr += args.at(i).get()->serialize();
+        if (i == args.size() - 1) paramStr += ")";
+        else paramStr += ", ";
+    }
+    return function.get()->serialize() + paramStr;
 }
 
 /************************* Statements ************************/

@@ -290,7 +290,7 @@ TEST(ParserTest, FnTest) {
     ASSERT_EQ(x->value, "x");
     ASSERT_EQ(infix->Operator, "+");
     ASSERT_EQ(y->value, "y");
-    ASSERT_EQ(exp->serialize(), "fn (x, y) {return (x + y);}");
+    ASSERT_EQ(exp->serialize(), "fn(x, y){return (x + y);}");
 }
 
 TEST(ParserTest, CallFnTest) {
@@ -309,6 +309,42 @@ TEST(ParserTest, CallFnTest) {
         Identifier* ident = dynamic_cast<Identifier*>(exp->args.at(i).get());
         ASSERT_EQ(ident->serialize(), paramTests[i]);
     }
+}
+
+TEST(ParserTest, CallFnSerializeTest) {
+    string input = "add(x, y + 5);";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    CallExpression* exp = dynamic_cast<CallExpression*>(stmt->expression.get());
+    ASSERT_EQ(stmt->serialize(), "add(x, (y + 5))");
+}
+
+TEST(ParserTest, FnDefCallTest) {
+    string input = "fn(x, y){return x + y;}(a, b);";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    CallExpression* exp = dynamic_cast<CallExpression*>(stmt->expression.get());
+    ASSERT_EQ(stmt->serialize(), "fn(x, y){return (x + y);}(a, b)");
+}
+
+TEST(ParserTest, FnAsParamTest) {
+    string input = "add(a, b, (3 + 5) / 6 * --8, fn(x, y, z){return x - c + z;}(5 - 6))";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    CallExpression* exp = dynamic_cast<CallExpression*>(stmt->expression.get());
+    ASSERT_EQ(stmt->serialize(), "add(a, b, (((3 + 5) / 6) * --8), fn(x, y, z){return ((x - c) + z);}((5 - 6)))");
 }
 
 int main(int argc, char** argv) {
