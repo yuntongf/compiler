@@ -129,29 +129,29 @@ runTests/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/build
 .PHONY : runTests/fast
 
-ParserTest.o: ParserTest.cpp.o
-.PHONY : ParserTest.o
+CompilerTest.o: CompilerTest.cpp.o
+.PHONY : CompilerTest.o
 
 # target to build an object file
-ParserTest.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/ParserTest.cpp.o
-.PHONY : ParserTest.cpp.o
+CompilerTest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.o
+.PHONY : CompilerTest.cpp.o
 
-ParserTest.i: ParserTest.cpp.i
-.PHONY : ParserTest.i
+CompilerTest.i: CompilerTest.cpp.i
+.PHONY : CompilerTest.i
 
 # target to preprocess a source file
-ParserTest.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/ParserTest.cpp.i
-.PHONY : ParserTest.cpp.i
+CompilerTest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.i
+.PHONY : CompilerTest.cpp.i
 
-ParserTest.s: ParserTest.cpp.s
-.PHONY : ParserTest.s
+CompilerTest.s: CompilerTest.cpp.s
+.PHONY : CompilerTest.s
 
 # target to generate assembly for a file
-ParserTest.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/ParserTest.cpp.s
-.PHONY : ParserTest.cpp.s
+CompilerTest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.s
+.PHONY : CompilerTest.cpp.s
 
 # Help Target
 help:
@@ -162,9 +162,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... runTests"
-	@echo "... ParserTest.o"
-	@echo "... ParserTest.i"
-	@echo "... ParserTest.s"
+	@echo "... CompilerTest.o"
+	@echo "... CompilerTest.i"
+	@echo "... CompilerTest.s"
 .PHONY : help
 
 
