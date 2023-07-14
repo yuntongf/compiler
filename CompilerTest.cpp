@@ -1,6 +1,7 @@
 #include<iostream>
 #include<gtest/gtest.h>
-#include"code.cpp"
+#include"compiler.cpp"
+#include"parser.cpp"
 
 using namespace std;
 
@@ -21,6 +22,61 @@ TEST(CompilerTest, ValueTest) {
         }
     }
 }
+
+void testInstructions(Instruction expected, Instruction actual ) {
+    ASSERT_EQ(expected.size(), actual.size());
+    for (int i = 0; i < expected.size(); i++) {
+        ASSERT_EQ(expected.at(i), actual.at(i));
+    }
+};
+
+template<typename T> void testConstants(vector<T> expected, vector<Object> actual) {
+    ASSERT_EQ(expected.size(), actual.size());
+    if (is_same<T, int>::value) {
+        for (int i = 0; i < expected.size(); i++) {
+            ASSERT_EQ(expected.at(i), actual.at(i).value);
+
+        }
+    }
+}
+
+void testConstants(vector<Object> expected, vector<Object> actual) {
+    ASSERT_EQ(expected.size(), actual.size());
+    for (int i = 0; i < expected.size(); i++) {
+        // test objects are equal
+    }
+}
+
+Instruction concatInstructions(vector<Instruction> instructions) {
+    Instruction res = instructions.at(0);
+    for (int i = 1; i < instructions.size(); i++) {
+        Instruction second = instructions.at(i);
+        res.insert(res.begin(), second.begin(), second.end());
+    }
+    return res;
+}
+
+TEST(CompilerTest, RunCompilerTest) {
+    string input = "1 + 2";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compile(program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        make(OpConstant, vector<int>{0}),
+        make(OpConstant, vector<int>{1})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+}
+
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

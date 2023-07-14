@@ -10,7 +10,7 @@ class Object {
     public:
     string type;
     virtual ~Object() = default;
-    virtual const string serialize();
+    virtual const string serialize() = 0;
 };
 
 class Integer: public Object {

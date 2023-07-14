@@ -3,13 +3,13 @@
 #include"ast.h"
 
 struct ByteCode {
-    Instructions instructions;
+    Instruction instructions;
     vector<Object> constants;
 };
 
 class Compiler {
     private:
-    Instructions instructions;
+    Instruction instructions;
     vector<Object> constants;
 
     public:

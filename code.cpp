@@ -8,7 +8,7 @@
 
 using namespace std;
 
-typedef vector<byte> Instructions;
+typedef vector<byte> Instruction;
 typedef byte OpCode;
 
 // class Iota {
