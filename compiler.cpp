@@ -1,16 +1,16 @@
 #include"code.cpp"
 #include"object.cpp"
-#include"ast.h"
+#include"parser.cpp"
 
 struct ByteCode {
     Instruction instructions;
-    vector<Object> constants;
+    vector<unique_ptr<Object>> constants;
 };
 
 class Compiler {
     private:
     Instruction instructions;
-    vector<Object> constants;
+    vector<unique_ptr<Object>> constants;
 
     public:
     Compiler() = default;
@@ -20,8 +20,7 @@ class Compiler {
     }
 
     ByteCode getByteCode() {
-        return ByteCode{
-            instructions, constants
-        };
+        ByteCode bc = {instructions, move(constants)};
+        return bc;
     }
 };
