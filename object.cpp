@@ -10,15 +10,17 @@ class Object {
     public:
     string type;
     virtual ~Object() = default;
-    virtual const string serialize();
+    virtual string serialize() const = 0;
 };
 
 class Integer: public Object {
     public:
     int value;
     string type = objs.INTEGER_OBJ;
-    Integer() = default;
-    string serialize() const {
+
+    Integer(int val) : value(val) {};
+
+    string serialize() const override {
         return "" + value;
     }
 };
