@@ -23,19 +23,20 @@ TEST(CompilerTest, ValueTest) {
 }
 
 void testInstructions(Instruction expected, Instruction actual ) {
-    // ASSERT_EQ(expected.size(), actual.size());
-    // for (int i = 0; i < expected.size(); i++) {
-    //     ASSERT_EQ(expected.at(i), actual.at(i));
-    // }
+    ASSERT_EQ(expected.size(), actual.size());
+    for (int i = 0; i < expected.size(); i++) {
+        ASSERT_EQ(expected.at(i), actual.at(i));
+    }
 };
 
 template<typename T> void testConstants(vector<T> expected, vector<unique_ptr<Object>> actual) {
     ASSERT_EQ(expected.size(), actual.size());
-    // if (is_same<T, int>::value) {
-    //     for (int i = 0; i < expected.size(); i++) {
-    //         ASSERT_EQ(expected.at(i), actual.at(i).get()->value);
-    //     }
-    // }
+    if (is_same<T, int>::value) {
+        for (int i = 0; i < expected.size(); i++) {
+            Integer* lit = dynamic_cast<Integer*>(actual.at(i).get());
+            ASSERT_EQ(expected.at(i), lit->value);
+        }
+    }
 }
 
 Instruction concatInstructions(vector<Instruction> instructions) {
@@ -56,7 +57,7 @@ TEST(CompilerTest, RunCompilerTest) {
     if (error) FAIL() << "test failed due to error in parser..." << endl;
     
     auto compiler = Compiler();
-    int err = compiler.compile(program);
+    int err = compiler.compileProgram(&program);
     if (err) FAIL() << "test failed due to error in compiler..." << endl;
 
     auto bytecode = compiler.getByteCode();
@@ -64,8 +65,8 @@ TEST(CompilerTest, RunCompilerTest) {
         constructByteCode(OpConstant, vector<int>{0}),
         constructByteCode(OpConstant, vector<int>{1})
     };
-    // testInstructions(concatInstructions(expected), bytecode.instructions);
-    // test constants
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2}, move(bytecode.constants));
 }
 
 TEST(CompilerTest, ReadOperandsTest) {
