@@ -32,6 +32,7 @@ typedef byte OpCode;
 // };
 // unique_ptr<Iota> incrementor = make_unique<Iota>();
 const OpCode OpConstant{0};
+const OpCode OpAdd{1};
 
 // add definitions for debug purpose
 struct Definition {
@@ -39,7 +40,8 @@ struct Definition {
     vector<int> operandWidths;
 };
 map<OpCode, Definition> defs = {
-    {OpConstant, {"OpConstant", vector<int>{4}}} // four bytes wide, assume no more than 65536 constants
+    {OpConstant, {"OpConstant", vector<int>{4}}},
+    {OpAdd, {"OpAdd", vector<int>{}}} // no operands
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;
@@ -113,7 +115,10 @@ string serialize(Instruction instruction) {
     Definition def;
     ostringstream buffer;
     while (byteCount < instruction.size()) {
-        if (lookup(instruction.at(byteCount))) return "";
+        if (lookup(instruction.at(byteCount))) {
+            cout << "lookup: no instruction found" <<endl;
+            return "";
+        }
         else {
             def = defs[instruction.at(byteCount)];
             buffer << formatByteCount(byteCount) << " ";

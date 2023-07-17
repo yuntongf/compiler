@@ -31,17 +31,35 @@ class VM {
         return 0;
     }
 
+    unique_ptr<Object> pop() {
+        return move(stack.at(--sp));
+    }
+
     int run() {
         for (int ip = 0; ip < instructions.size(); ip++) {
             // fetch
             auto opcode = OpCode(instructions.at(ip));
             switch (opcode) {
-                case OpConstant:
-                    int constIndex = 0;
-                    for (int i = 0; i < 4; i++) {
-                        constIndex = (constIndex << 8) | (int) instructions.at(++ip);
+                case OpConstant: 
+                    {   
+                        int constIndex = 0;
+                        for (int i = 0; i < 4; i++) {
+                            constIndex = (constIndex << 8) | (int) instructions.at(++ip);
+                        }
+                        if (push(move(constants.at(constIndex)))) return 1;
                     }
-                    if (push(move(constants.at(constIndex)))) return 1;
+                    break;
+                case OpAdd: 
+                    // pop top two elements and add them
+                    {
+                        Integer* left = dynamic_cast<Integer*>(pop().get());
+                        Integer* right = dynamic_cast<Integer*>(pop().get());
+                        unique_ptr<Object> o = make_unique<Integer>(left->value + right->value);
+                        push(move(o));
+                    }
+                    break;
+                default:
+                    break;
             }
         }
         return 0;

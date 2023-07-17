@@ -11,10 +11,11 @@ TEST(CompilerTest, ValueTest) {
         vector<byte> expected;
     };
     vector<Test> tests = {
-        {OpConstant, vector<int>{65534}, vector<byte>{OpConstant, (byte) 0, (byte) 0, (byte) 255, (byte)254}}
+        {OpConstant, vector<int>{65534}, vector<byte>{OpConstant, (byte) 0, (byte) 0, (byte) 255, (byte)254}},
+        {OpAdd, vector<int>{}, vector<byte>{OpAdd}}
     };
     for (Test test : tests) {
-        auto instruction = constructByteCode(OpConstant, test.operands);
+        auto instruction = constructByteCode(test.opcode, test.operands);
         ASSERT_EQ(instruction.size(), test.expected.size());
         for (int i = 0; i < test.expected.size(); i++) {
             ASSERT_EQ(test.expected.at(i), instruction.at(i));
@@ -63,7 +64,8 @@ TEST(CompilerTest, RunCompilerTest) {
     auto bytecode = compiler.getByteCode();
     vector<Instruction> expected = {
         constructByteCode(OpConstant, vector<int>{0}),
-        constructByteCode(OpConstant, vector<int>{1})
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpAdd, vector<int>{})
     };
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{1, 2}, move(bytecode.constants));
@@ -91,11 +93,12 @@ TEST(CompilerTest, ReadOperandsTest) {
 
 TEST(CompilerTest, InstructionSerializeTest) {
     vector<Instruction> instructions = {
+        constructByteCode(OpAdd, vector<int>{}),
         constructByteCode(OpConstant, vector<int>{1}),
         constructByteCode(OpConstant, vector<int>{2}),
         constructByteCode(OpConstant, vector<int>{65534})
     };
-    string expected = "0000 OpConstant 1\n0005 OpConstant 2\n0010 OpConstant 65534";
+    string expected = "0000 OpAdd\n0001 OpConstant 1\n0006 OpConstant 2\n0011 OpConstant 65534";
     Instruction concat = concatInstructions(instructions);
 
     ASSERT_EQ(serialize(concat), expected);
