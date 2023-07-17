@@ -33,9 +33,24 @@ class VM {
     unique_ptr<Object>& pop() {
         return stack.at(--sp);
     }
+    
+    int isTrue(unique_ptr<Object>& obj) {
+        string type = obj.get()->getType();
+        if (type == objs.BOOLEAN_OBJ) {
+            Boolean* boolean = dynamic_cast<Boolean*>(obj.get());
+            return boolean->value;
+        } else if (type == objs.NULL_OBJ) {
+            return false;
+        } else if (type == objs.INTEGER_OBJ) {
+            Integer* integer = dynamic_cast<Integer*>(obj.get());
+            return integer->value;
+        } else {
+            return -1; // cannot assign boolean value to object type 
+        }
+    }
 
     int run() {
-        for (int ip = 0; ip < instructions.size(); ip++) {
+        for (int ip = 0; ip < instructions.size(); ip++) { // ip at the end of the loop points the the last executed instruction
             // fetch
             auto opcode = OpCode(instructions.at(ip));
             switch (opcode) {
@@ -74,40 +89,20 @@ class VM {
                 case OpTrue: if (push(make_unique<Boolean>(true))) return 1; break;
                 case OpFalse: if (push(make_unique<Boolean>(false))) return 1; break;
                 case OpEq: case OpNeq: case OpGt:
-                    // pop top two elements and add them
                     {   
-                        unique_ptr<Object>& right = pop();
-                        unique_ptr<Object>& left = pop();
-                        // integer comparison
-                        if (left.get()->getType() == objs.INTEGER_OBJ && right.get()->getType() == objs.INTEGER_OBJ) {
-                            Integer* leftInt = dynamic_cast<Integer*>(left.get());
-                            Integer* rightInt = dynamic_cast<Integer*>(right.get());
-                            bool res = false;
-                            switch (opcode) {
-                                case OpEq: res = leftInt->value == rightInt->value; break;
-                                case OpNeq: res = leftInt->value != rightInt->value; break;
-                                case OpGt: res = leftInt->value > rightInt->value; break;
-                                default:
-                                    return 1; // unrecognized operation
-                            }
-                            unique_ptr<Object> o = make_unique<Boolean>(res);
-                            if (push(move(o))) return 1;
-                        } else if (left.get()->getType() == objs.BOOLEAN_OBJ && right.get()->getType() == objs.BOOLEAN_OBJ) {
-                            Boolean* leftBool = dynamic_cast<Boolean*>(left.get());
-                            Boolean* rightBool = dynamic_cast<Boolean*>(right.get());
-                            bool res = false;
-                            switch (opcode) {
-                                case OpEq: res = leftBool->value == rightBool->value; break;
-                                case OpNeq: res = leftBool->value != rightBool->value; break;
-                                case OpGt: res = leftBool->value > rightBool->value; break;
-                                default:
-                                    return 1; // unrecognized operation
-                            }
-                            unique_ptr<Object> o = make_unique<Boolean>(res);
-                            if (push(move(o))) return 1;
-                        } else {
-                            return 1; // non-matching types in a comparison
+                        int right = isTrue(pop());
+                        int left = isTrue(pop());
+                        if (right == -1 || left == -1) return 1; // cannot assign boolean value to obj
+                        bool res = false;
+                        switch (opcode) {
+                            case OpEq: res = left == right; break;
+                            case OpNeq: res = left != right; break;
+                            case OpGt: res = left > right; break;
+                            default:
+                                return 1; // unrecognized operation
                         }
+                        unique_ptr<Object> o = make_unique<Boolean>(res);
+                        if (push(move(o))) return 1;
 
                     }
                     break;
@@ -121,15 +116,39 @@ class VM {
                     break;
                 case OpSurprise:
                     {
-                        unique_ptr<Object>& operand = pop();
-                        if (operand.get()->getType() != objs.BOOLEAN_OBJ) return 1; // invalid operand for prefix operator '!'
-                        Boolean* boolean = dynamic_cast<Boolean*>(operand.get());
-                        push(make_unique<Boolean>(!boolean->value));
+                        int boolean = isTrue(pop());
+                        if (boolean == -1) return 1; // cannot assign boolean value to operand
+                        push(make_unique<Boolean>(!boolean));
                     }
                     break;
                 case OpPop:
                     pop();
                     break;
+                case OpNull:
+                    if (push(make_unique<Null>())) return 1; // failed to push null to stack
+                    break;
+                case OpJump:
+                {
+                    int jumpAddr = 0;
+                    for (int i = 0; i < 4; i++) {
+                        jumpAddr = (jumpAddr << 8) | (int) instructions.at(++ip);
+                    }
+                    ip = jumpAddr - 1;
+                }
+                break;
+                case OpJumpIfFalse:
+                {
+                    int jumpAddr = 0;
+                    for (int i = 0; i < 4; i++) {
+                        jumpAddr = (jumpAddr << 8) | (int) instructions.at(++ip);
+                    }
+
+                    int condition = isTrue(pop());
+                    if (!condition) {
+                        ip = jumpAddr - 1;
+                    }
+                }
+                break;
                 default:
                     break;
             }

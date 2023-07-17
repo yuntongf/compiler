@@ -7,13 +7,41 @@ struct ByteCode {
     vector<unique_ptr<Object>> constants;
 };
 
+struct EmittedInstruction {
+    OpCode opcode;
+    int ip;
+};
+
 class Compiler {
     private:
     Instruction instructions;
     vector<unique_ptr<Object>> constants;
+    EmittedInstruction last;
+    EmittedInstruction prevLast;
 
     public:
     Compiler() = default;
+
+    void setLastInstruction(OpCode opcode, int ip) {
+        prevLast = last;
+        last = EmittedInstruction{opcode, ip};
+    }
+
+    void removeIfLastPop() {
+        if (last.opcode == OpPop) {
+            instructions.pop_back();
+            last = prevLast;
+        }
+    }
+
+    void changeOperand(int ip, vector<int> operand) {
+        auto opcode = OpCode(instructions.at(ip));
+        auto newInstruction = constructByteCode(opcode, operand);
+        // replace instruction
+        for (int i = 0; i < newInstruction.size(); i++) {
+            instructions.at(ip + i) = newInstruction.at(i);
+        }
+    }
 
     template<typename T> int compile(unique_ptr<T> node) {
         string type = node.get()->getType();
@@ -71,6 +99,30 @@ class Compiler {
             if (lit->value) emit(OpTrue, vector<int>{});
             else emit(OpFalse, vector<int>{});
         }
+        else if (type == ntypes.IfExpression) {
+            IfExpression* exp = dynamic_cast<IfExpression*>(node.get());
+            if (compile(move(exp->condition))) return 1; // failed to compile condition of if statement
+            int posJumpIfFalse = emit(OpJumpIfFalse, vector<int>{-1}); // fix later
+            if (compile(move(exp->consequence))) return 1; // failed to compile consequence
+            removeIfLastPop(); // do not pop the result of consequence off stack
+
+            int posJump = emit(OpJump, vector<int>{-1});
+            changeOperand(posJumpIfFalse, vector<int>{(int) instructions.size()});
+
+            if (exp->alternative == nullptr) {
+                emit(OpNull, vector<int>{});
+            } else {
+                if (compile(move(exp->alternative))) return 1; // failed to compile alternative of if statement
+                removeIfLastPop();
+            }
+            changeOperand(posJump, vector<int>{(int) instructions.size()});
+        }
+        else if (type == ntypes.BlockStatement) {
+            BlockStatement* stmt = dynamic_cast<BlockStatement*>(node.get());
+            for (int i = 0; i < stmt->statements.size(); i++) {
+                if (compile(move(stmt->statements.at(i)))) return 1;
+            }
+        }
         return 0;
     }
 
@@ -95,11 +147,13 @@ class Compiler {
         auto instruction = constructByteCode(opcode, operands);
         // cout << serialize(instruction) << endl;
         int pos = addInstruction(instruction);
-        return 0;
+        prevLast = last;
+        last = EmittedInstruction{opcode, pos};
+        return pos;
     }
 
     int addInstruction(Instruction instruction) {
-        int pos = instruction.size();
+        int pos = instructions.size();
         instructions.insert(instructions.end(), instruction.begin(), instruction.end());
         return pos;
     }

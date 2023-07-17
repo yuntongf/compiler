@@ -5,6 +5,7 @@ using namespace std;
 struct ObjTypes {
     string INTEGER_OBJ = "INTEGER";
     string BOOLEAN_OBJ = "BOOLEAN";
+    string NULL_OBJ = "NULL";
 } objs;
 
 class Object {
@@ -42,6 +43,20 @@ class Boolean: public Object {
         return value ? "true" : "false";
     }
 
+    string getType() const override {
+        return type;
+    }
+};
+
+class Null: public Object {
+    public:
+    string type = objs.NULL_OBJ;
+
+    Null() = default;
+
+    string serialize() const override {
+        return "null";
+    }
     string getType() const override {
         return type;
     }
