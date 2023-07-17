@@ -49,7 +49,7 @@ Instruction concatInstructions(vector<Instruction> instructions) {
     return res;
 }
 
-TEST(CompilerTest, RunCompilerTest) {
+TEST(CompilerTest, ArithmeticTest) {
     string input = "1 + 2";
     Lexer l = Lexer(input);
     Parser p = Parser(l);
@@ -65,7 +65,31 @@ TEST(CompilerTest, RunCompilerTest) {
     vector<Instruction> expected = {
         constructByteCode(OpConstant, vector<int>{0}),
         constructByteCode(OpConstant, vector<int>{1}),
-        constructByteCode(OpAdd, vector<int>{})
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, PopTest) {
+    string input = "1; 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpPop, vector<int>{})
     };
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{1, 2}, move(bytecode.constants));

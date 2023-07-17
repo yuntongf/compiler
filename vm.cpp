@@ -20,9 +20,8 @@ class VM {
         sp = 0;
     }
 
-    unique_ptr<Object> peek() {
-        if (sp == 0) return nullptr;
-        return move(stack.at(sp - 1));
+    unique_ptr<Object>& getLastPopped() {
+        return stack.at(sp);
     }
 
     int push(unique_ptr<Object> constant) {
@@ -31,8 +30,8 @@ class VM {
         return 0;
     }
 
-    unique_ptr<Object> pop() {
-        return move(stack.at(--sp));
+    unique_ptr<Object>& pop() {
+        return stack.at(--sp);
     }
 
     int run() {
@@ -49,14 +48,31 @@ class VM {
                         if (push(move(constants.at(constIndex)))) return 1;
                     }
                     break;
-                case OpAdd: 
+                case OpAdd: case OpMul: case OpDiv: case OpSub:
                     // pop top two elements and add them
-                    {
-                        Integer* left = dynamic_cast<Integer*>(pop().get());
-                        Integer* right = dynamic_cast<Integer*>(pop().get());
-                        unique_ptr<Object> o = make_unique<Integer>(left->value + right->value);
+                    {   
+                        unique_ptr<Object>& right = pop();
+                        unique_ptr<Object>& left = pop();
+                        if (left.get()->getType() != objs.INTEGER_OBJ || right.get()->getType() != objs.INTEGER_OBJ) {
+                            return 1; // wrong 
+                        }
+                        Integer* leftInt = dynamic_cast<Integer*>(left.get());
+                        Integer* rightInt = dynamic_cast<Integer*>(right.get());
+                        int res = 0;
+                        switch (opcode) {
+                            case OpAdd: res = leftInt->value + rightInt->value; break;
+                            case OpSub: res = leftInt->value - rightInt->value; break;
+                            case OpMul: res = leftInt->value * rightInt->value; break;
+                            case OpDiv: res = leftInt->value / rightInt->value; break;
+                            default:
+                                return 1; // unrecognized operation
+                        }
+                        unique_ptr<Object> o = make_unique<Integer>(res);
                         push(move(o));
                     }
+                    break;
+                case OpPop:
+                    pop();
                     break;
                 default:
                     break;

@@ -21,7 +21,10 @@ TEST(VMTest, RunVMTest) {
     vector<VMTest<int>> tests = {
         {"1", 1},
         {"2", 2},
-        {"1 + 2", 3}
+        {"1 + 2", 3},
+        {"2 - 3", -1},
+        {"4 * 3", 12},
+        {"4 / 2", 2}
     };
     for (auto test : tests) {
         auto program = Program();
@@ -33,8 +36,8 @@ TEST(VMTest, RunVMTest) {
         auto vm = VM(compiler.getByteCode());
         if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
 
-        auto stackElem = vm.peek();
-        Integer* integer = dynamic_cast<Integer*>(stackElem.get());
+        Integer* integer = dynamic_cast<Integer*>(vm.getLastPopped().get());
         ASSERT_EQ(integer->value, test.expected);
+        // ASSERT_EQ(vm.sp, 0);
     }
 }

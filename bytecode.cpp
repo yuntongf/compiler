@@ -33,6 +33,10 @@ typedef byte OpCode;
 // unique_ptr<Iota> incrementor = make_unique<Iota>();
 const OpCode OpConstant{0};
 const OpCode OpAdd{1};
+const OpCode OpPop{2};
+const OpCode OpMul{3};
+const OpCode OpSub{4};
+const OpCode OpDiv{5};
 
 // add definitions for debug purpose
 struct Definition {
@@ -41,7 +45,11 @@ struct Definition {
 };
 map<OpCode, Definition> defs = {
     {OpConstant, {"OpConstant", vector<int>{4}}},
-    {OpAdd, {"OpAdd", vector<int>{}}} // no operands
+    {OpAdd, {"OpAdd", vector<int>{}}}, // no operands
+    {OpMul, {"OpMul", vector<int>{}}},
+    {OpSub, {"OpSub", vector<int>{}}},
+    {OpDiv, {"OpDiv", vector<int>{}}},
+    {OpPop, {"OpPop", vector<int>{}}}
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;

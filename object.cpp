@@ -11,6 +11,7 @@ class Object {
     string type;
     virtual ~Object() = default;
     virtual string serialize() const = 0;
+    virtual string getType() const = 0;
 };
 
 class Integer: public Object {
@@ -22,5 +23,9 @@ class Integer: public Object {
 
     string serialize() const override {
         return to_string(value);
+    }
+
+    string getType() const override {
+        return type;
     }
 };

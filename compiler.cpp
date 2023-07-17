@@ -21,13 +21,23 @@ class Compiler {
         if (type == ntypes.ExpressionStatement) {
             ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(node.get());
             if (compile(move(stmt->expression))) return 1;
+            emit(OpPop, vector<int>{});
         }
         else if (type == ntypes.InfixExpression) {
             InfixExpression* exp = dynamic_cast<InfixExpression*>(node.get());
             if (compile(move(exp->left))) return 1;
             if (compile(move(exp->right))) return 1;
+            
             if (exp->Operator == "+") {
                 emit(OpAdd, vector<int>{});
+            } else if (exp->Operator == "-") {
+                emit(OpSub, vector<int>{});
+            } else if (exp->Operator == "*") {
+                emit(OpMul, vector<int>{});
+            } else if (exp->Operator == "/") {
+                emit(OpDiv, vector<int>{});
+            } else {
+                return 1; // unknown operator
             }
         }
         else if (type == ntypes.IntLiteral) {
