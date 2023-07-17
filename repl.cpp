@@ -25,7 +25,7 @@ void repl() {
         auto vm = VM(compiler.getByteCode());
         if (vm.run()) cout << "test failed due to error in vm..." << endl;
 
-        cout << vm.peek().get()->serialize() << endl;
+        cout << vm.getLastPopped().get()->serialize() << endl;
         // cin.clear();
     }
 };

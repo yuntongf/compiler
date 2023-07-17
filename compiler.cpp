@@ -21,19 +21,55 @@ class Compiler {
         if (type == ntypes.ExpressionStatement) {
             ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(node.get());
             if (compile(move(stmt->expression))) return 1;
+            emit(OpPop, vector<int>{});
+        }
+        else if (type == ntypes.PrefixExpression) {
+            PrefixExpression* exp = dynamic_cast<PrefixExpression*>(node.get());
+            if (compile(move(exp->right))) return 1; // expression invalid
+            if (exp->Operator == "-") {
+                emit(OpMinus, vector<int>{});
+            } else if (exp->Operator == "!") {
+                emit(OpSurprise, vector<int>{});
+            }
         }
         else if (type == ntypes.InfixExpression) {
             InfixExpression* exp = dynamic_cast<InfixExpression*>(node.get());
+            if (exp->Operator == "<") {
+                if (compile(move(exp->right))) return 1;
+                if (compile(move(exp->left))) return 1;
+                emit(OpGt, vector<int>{});
+                return 0;
+            }
             if (compile(move(exp->left))) return 1;
             if (compile(move(exp->right))) return 1;
+
             if (exp->Operator == "+") {
                 emit(OpAdd, vector<int>{});
+            } else if (exp->Operator == "-") {
+                emit(OpSub, vector<int>{});
+            } else if (exp->Operator == "*") {
+                emit(OpMul, vector<int>{});
+            } else if (exp->Operator == "/") {
+                emit(OpDiv, vector<int>{});
+            } else if (exp->Operator == "==") {
+                emit(OpEq, vector<int>{});
+            } else if (exp->Operator == "!=") {
+                emit(OpNeq, vector<int>{});
+            } else if (exp->Operator == ">") {
+                emit(OpGt, vector<int>{});
+            } else {
+                return 1; // unknown operator
             }
         }
         else if (type == ntypes.IntLiteral) {
             IntLiteral* lit = dynamic_cast<IntLiteral*>(node.get());
             // unique_ptr<Object> integer = make_unique<Integer>(lit->value);
             emit(OpConstant, vector<int>{addConstant(make_unique<Integer>(lit->value))});
+        }
+        else if (type == ntypes.BoolLiteral) {
+            BoolLiteral* lit = dynamic_cast<BoolLiteral*>(node.get());
+            if (lit->value) emit(OpTrue, vector<int>{});
+            else emit(OpFalse, vector<int>{});
         }
         return 0;
     }

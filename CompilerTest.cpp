@@ -49,28 +49,6 @@ Instruction concatInstructions(vector<Instruction> instructions) {
     return res;
 }
 
-TEST(CompilerTest, RunCompilerTest) {
-    string input = "1 + 2";
-    Lexer l = Lexer(input);
-    Parser p = Parser(l);
-    auto program = Program();
-    int error = p.parseProgram(&program);
-    if (error) FAIL() << "test failed due to error in parser..." << endl;
-    
-    auto compiler = Compiler();
-    int err = compiler.compileProgram(&program);
-    if (err) FAIL() << "test failed due to error in compiler..." << endl;
-
-    auto bytecode = compiler.getByteCode();
-    vector<Instruction> expected = {
-        constructByteCode(OpConstant, vector<int>{0}),
-        constructByteCode(OpConstant, vector<int>{1}),
-        constructByteCode(OpAdd, vector<int>{})
-    };
-    testInstructions(concatInstructions(expected), bytecode.instructions);
-    testConstants(vector<int>{1, 2}, move(bytecode.constants));
-}
-
 TEST(CompilerTest, ReadOperandsTest) {
     struct Test {
         OpCode opcode;
@@ -103,6 +81,134 @@ TEST(CompilerTest, InstructionSerializeTest) {
 
     ASSERT_EQ(serialize(concat), expected);
 }
+
+TEST(CompilerTest, ArithmeticTest) {
+    string input = "1 + 2";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, PopTest) {
+    string input = "1; 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, BooleanTest) {
+    string input = "true; false;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpTrue, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpFalse, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+}
+
+TEST(CompilerTest, ComparisonTest) {
+    string input = "1 == 1; 2 != 3; 2 < 3; 3 > 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpEq, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpConstant, vector<int>{3}),
+        constructByteCode(OpNeq, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{4}),
+        constructByteCode(OpConstant, vector<int>{5}),
+        constructByteCode(OpGt, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{6}),
+        constructByteCode(OpConstant, vector<int>{7}),
+        constructByteCode(OpGt, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 1, 2, 3, 3, 2, 3, 2}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, PrefixTest) {
+    string input = "!false; -1;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpFalse, vector<int>{}),
+        constructByteCode(OpSurprise, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpMinus, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+}
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

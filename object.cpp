@@ -4,6 +4,7 @@ using namespace std;
 
 struct ObjTypes {
     string INTEGER_OBJ = "INTEGER";
+    string BOOLEAN_OBJ = "BOOLEAN";
 } objs;
 
 class Object {
@@ -11,6 +12,7 @@ class Object {
     string type;
     virtual ~Object() = default;
     virtual string serialize() const = 0;
+    virtual string getType() const = 0;
 };
 
 class Integer: public Object {
@@ -22,5 +24,25 @@ class Integer: public Object {
 
     string serialize() const override {
         return to_string(value);
+    }
+
+    string getType() const override {
+        return type;
+    }
+};
+
+class Boolean: public Object {
+    public:
+    bool value;
+    string type = objs.BOOLEAN_OBJ;
+
+    Boolean(bool val) : value(val) {};
+
+    string serialize() const override {
+        return value ? "true" : "false";
+    }
+
+    string getType() const override {
+        return type;
     }
 };
