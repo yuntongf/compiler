@@ -1,4 +1,4 @@
-#include"code.cpp"
+#include"bytecode.cpp"
 #include"object.cpp"
 #include"parser.cpp"
 
@@ -26,6 +26,9 @@ class Compiler {
             InfixExpression* exp = dynamic_cast<InfixExpression*>(node.get());
             if (compile(move(exp->left))) return 1;
             if (compile(move(exp->right))) return 1;
+            if (exp->Operator == "+") {
+                emit(OpAdd, vector<int>{});
+            }
         }
         else if (type == ntypes.IntLiteral) {
             IntLiteral* lit = dynamic_cast<IntLiteral*>(node.get());

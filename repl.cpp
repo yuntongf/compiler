@@ -1,5 +1,6 @@
-#include"parser.cpp"
+// #include"parser.cpp"
 #include<iostream>
+#include"vm.cpp"
 
 using namespace std;
 
@@ -15,11 +16,16 @@ void repl() {
         Parser p = Parser(l);
         auto program = Program();
         int error = p.parseProgram(&program);
-        if (error == 0) {
-            for (int i = 0; i < program.statements.size(); i++) {
-                cout << program.statements.at(i).get()->serialize() << endl;
-            }
-        }
+        if (error) cout << "test failed due to error in parser..." << endl;
+
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) cout << "test failed due to error in compiler..." << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) cout << "test failed due to error in vm..." << endl;
+
+        cout << vm.peek().get()->serialize() << endl;
         // cin.clear();
     }
 };

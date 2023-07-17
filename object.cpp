@@ -21,6 +21,6 @@ class Integer: public Object {
     Integer(int val) : value(val) {};
 
     string serialize() const override {
-        return "" + value;
+        return to_string(value);
     }
 };
