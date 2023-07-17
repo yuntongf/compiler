@@ -23,8 +23,23 @@ class Compiler {
             if (compile(move(stmt->expression))) return 1;
             emit(OpPop, vector<int>{});
         }
+        else if (type == ntypes.PrefixExpression) {
+            PrefixExpression* exp = dynamic_cast<PrefixExpression*>(node.get());
+            if (compile(move(exp->right))) return 1; // expression invalid
+            if (exp->Operator == "-") {
+                emit(OpMinus, vector<int>{});
+            } else if (exp->Operator == "!") {
+                emit(OpSurprise, vector<int>{});
+            }
+        }
         else if (type == ntypes.InfixExpression) {
             InfixExpression* exp = dynamic_cast<InfixExpression*>(node.get());
+            if (exp->Operator == "<") {
+                if (compile(move(exp->right))) return 1;
+                if (compile(move(exp->left))) return 1;
+                emit(OpGt, vector<int>{});
+                return 0;
+            }
             if (compile(move(exp->left))) return 1;
             if (compile(move(exp->right))) return 1;
 
@@ -36,6 +51,12 @@ class Compiler {
                 emit(OpMul, vector<int>{});
             } else if (exp->Operator == "/") {
                 emit(OpDiv, vector<int>{});
+            } else if (exp->Operator == "==") {
+                emit(OpEq, vector<int>{});
+            } else if (exp->Operator == "!=") {
+                emit(OpNeq, vector<int>{});
+            } else if (exp->Operator == ">") {
+                emit(OpGt, vector<int>{});
             } else {
                 return 1; // unknown operator
             }

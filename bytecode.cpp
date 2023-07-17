@@ -39,6 +39,12 @@ const OpCode OpSub{4};
 const OpCode OpDiv{5};
 const OpCode OpTrue{6};
 const OpCode OpFalse{7};
+const OpCode OpEq{8};
+const OpCode OpNeq{9};
+const OpCode OpGt{10};
+const OpCode OpMinus{11};
+const OpCode OpSurprise{12};
+
 
 // add definitions for debug purpose
 struct Definition {
@@ -53,12 +59,16 @@ map<OpCode, Definition> defs = {
     {OpDiv, {"OpDiv", vector<int>{}}},
     {OpPop, {"OpPop", vector<int>{}}},
     {OpTrue, {"OpTrue", vector<int>{}}},
-    {OpFalse, {"OpFalse", vector<int>{}}}
+    {OpFalse, {"OpFalse", vector<int>{}}},
+    {OpEq, {"OpEq", vector<int>{}}},
+    {OpNeq, {"OpNeq", vector<int>{}}},
+    {OpGt, {"OpGt", vector<int>{}}},
+    {OpMinus, {"OpMinus", vector<int>{}}},
+    {OpSurprise, {"OpSurprise", vector<int>{}}}
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;
 }
-
 
 /******************** construct and destruct byte code *******************/
 vector<byte> constructByteCode(OpCode opcode, vector<int> operands) {

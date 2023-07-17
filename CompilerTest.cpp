@@ -49,6 +49,39 @@ Instruction concatInstructions(vector<Instruction> instructions) {
     return res;
 }
 
+TEST(CompilerTest, ReadOperandsTest) {
+    struct Test {
+        OpCode opcode;
+        vector<int> operands;
+    };
+
+    vector<Test> tests = {
+        {OpConstant, vector<int>{65535}}
+    };
+
+    for (auto test : tests) {
+        auto instruction = constructByteCode(test.opcode, test.operands);
+        if (lookup(test.opcode)) FAIL() << "Opcode does not exist..." << endl;
+        vector<int> operandsRead = destructOperandsByteCode(defs[test.opcode], instruction, 1).first;
+        for (int i = 0; i < operandsRead.size(); i++) {
+            ASSERT_EQ(operandsRead.at(i), test.operands.at(i));
+        }
+    }
+}
+
+TEST(CompilerTest, InstructionSerializeTest) {
+    vector<Instruction> instructions = {
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpConstant, vector<int>{65534})
+    };
+    string expected = "0000 OpAdd\n0001 OpConstant 1\n0006 OpConstant 2\n0011 OpConstant 65534";
+    Instruction concat = concatInstructions(instructions);
+
+    ASSERT_EQ(serialize(concat), expected);
+}
+
 TEST(CompilerTest, ArithmeticTest) {
     string input = "1 + 2";
     Lexer l = Lexer(input);
@@ -117,37 +150,63 @@ TEST(CompilerTest, BooleanTest) {
     testInstructions(concatInstructions(expected), bytecode.instructions);
 }
 
-TEST(CompilerTest, ReadOperandsTest) {
-    struct Test {
-        OpCode opcode;
-        vector<int> operands;
-    };
+TEST(CompilerTest, ComparisonTest) {
+    string input = "1 == 1; 2 != 3; 2 < 3; 3 > 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
 
-    vector<Test> tests = {
-        {OpConstant, vector<int>{65535}}
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpEq, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpConstant, vector<int>{3}),
+        constructByteCode(OpNeq, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{4}),
+        constructByteCode(OpConstant, vector<int>{5}),
+        constructByteCode(OpGt, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{6}),
+        constructByteCode(OpConstant, vector<int>{7}),
+        constructByteCode(OpGt, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
     };
-
-    for (auto test : tests) {
-        auto instruction = constructByteCode(test.opcode, test.operands);
-        if (lookup(test.opcode)) FAIL() << "Opcode does not exist..." << endl;
-        vector<int> operandsRead = destructOperandsByteCode(defs[test.opcode], instruction, 1).first;
-        for (int i = 0; i < operandsRead.size(); i++) {
-            ASSERT_EQ(operandsRead.at(i), test.operands.at(i));
-        }
-    }
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 1, 2, 3, 3, 2, 3, 2}, move(bytecode.constants));
 }
 
-TEST(CompilerTest, InstructionSerializeTest) {
-    vector<Instruction> instructions = {
-        constructByteCode(OpAdd, vector<int>{}),
-        constructByteCode(OpConstant, vector<int>{1}),
-        constructByteCode(OpConstant, vector<int>{2}),
-        constructByteCode(OpConstant, vector<int>{65534})
-    };
-    string expected = "0000 OpAdd\n0001 OpConstant 1\n0006 OpConstant 2\n0011 OpConstant 65534";
-    Instruction concat = concatInstructions(instructions);
+TEST(CompilerTest, PrefixTest) {
+    string input = "!false; -1;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
 
-    ASSERT_EQ(serialize(concat), expected);
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpFalse, vector<int>{}),
+        constructByteCode(OpSurprise, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpMinus, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
 }
 
 

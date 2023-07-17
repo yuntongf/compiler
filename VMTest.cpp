@@ -25,10 +25,12 @@ TEST(VMTest, VMIntegerTest) {
     vector<VMTest<int>> tests = {
         {"1", 1},
         {"2", 2},
+        {"-5", -5},
         {"1 + 2", 3},
         {"2 - 3", -1},
         {"4 * 3", 12},
-        {"4 / 2", 2}
+        {"4 / 2", 2},
+        {"-2 - 2", -4}
     };
     for (auto test : tests) {
         auto program = Program();
@@ -48,9 +50,20 @@ TEST(VMTest, VMIntegerTest) {
 }
 
 TEST(VMTest, VMBooleanTest) {
-    vector<VMTest<int>> tests = {
+    vector<VMTest<bool>> tests = {
         {"true", true},
-        {"false", false}
+        {"!true", false},
+        {"false", false},
+        {"1 < 2", true},
+        {"1 > 1", false},
+        {"1 == 1", true},
+        {"1 != 1", false},
+        {"true == true", true},
+        {"!true != true", true},
+        {"true != false", true},
+        {"(5 < 6) == true", true},
+        {"(6 > 5) == true", true},
+        {"(-8 > 5) == true", false}
     };
     for (auto test : tests) {
         auto program = Program();

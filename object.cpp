@@ -39,7 +39,7 @@ class Boolean: public Object {
     Boolean(bool val) : value(val) {};
 
     string serialize() const override {
-        return to_string(value);
+        return value ? "true" : "false";
     }
 
     string getType() const override {
