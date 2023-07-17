@@ -209,6 +209,61 @@ TEST(CompilerTest, PrefixTest) {
     testInstructions(concatInstructions(expected), bytecode.instructions);
 }
 
+TEST(CompilerTest, ConditionalNullTest) {
+    string input = "if (false) {1}; 2;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpFalse, vector<int>{}), // 0000
+        constructByteCode(OpJumpIfFalse, vector<int>{16}), // 0001
+        constructByteCode(OpConstant, vector<int>{0}), // 0006
+        constructByteCode(OpJump, vector<int>{17}), // 0011
+        constructByteCode(OpNull, vector<int>{}), // 0016
+        constructByteCode(OpPop, vector<int>{}), //0017
+        constructByteCode(OpConstant, vector<int>{1}), //0018
+        constructByteCode(OpPop, vector<int>{}) // 0023
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, IfElseTest) {
+    string input = "if (true) {1} else {2}; 3;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpTrue, vector<int>{}), // 0000
+        constructByteCode(OpJumpIfFalse, vector<int>{16}), // 0001
+        constructByteCode(OpConstant, vector<int>{0}), // 0006
+        constructByteCode(OpJump, vector<int>{21}), // 0011
+        constructByteCode(OpConstant, vector<int>{1}), // 0016
+        constructByteCode(OpPop, vector<int>{}), //0021
+        constructByteCode(OpConstant, vector<int>{2}), //0022
+        constructByteCode(OpPop, vector<int>{}) // 0027
+    };
+    // cout << serialize(bytecode.instructions) << endl;
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2, 3}, move(bytecode.constants));
+}
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
