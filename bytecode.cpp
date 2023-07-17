@@ -37,6 +37,8 @@ const OpCode OpPop{2};
 const OpCode OpMul{3};
 const OpCode OpSub{4};
 const OpCode OpDiv{5};
+const OpCode OpTrue{6};
+const OpCode OpFalse{7};
 
 // add definitions for debug purpose
 struct Definition {
@@ -49,7 +51,9 @@ map<OpCode, Definition> defs = {
     {OpMul, {"OpMul", vector<int>{}}},
     {OpSub, {"OpSub", vector<int>{}}},
     {OpDiv, {"OpDiv", vector<int>{}}},
-    {OpPop, {"OpPop", vector<int>{}}}
+    {OpPop, {"OpPop", vector<int>{}}},
+    {OpTrue, {"OpTrue", vector<int>{}}},
+    {OpFalse, {"OpFalse", vector<int>{}}}
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;

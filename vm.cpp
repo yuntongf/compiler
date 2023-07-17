@@ -54,7 +54,7 @@ class VM {
                         unique_ptr<Object>& right = pop();
                         unique_ptr<Object>& left = pop();
                         if (left.get()->getType() != objs.INTEGER_OBJ || right.get()->getType() != objs.INTEGER_OBJ) {
-                            return 1; // wrong 
+                            return 1; // wrong type
                         }
                         Integer* leftInt = dynamic_cast<Integer*>(left.get());
                         Integer* rightInt = dynamic_cast<Integer*>(right.get());
@@ -68,9 +68,12 @@ class VM {
                                 return 1; // unrecognized operation
                         }
                         unique_ptr<Object> o = make_unique<Integer>(res);
-                        push(move(o));
+                        if (push(move(o))) return 1;
                     }
                     break;
+                case OpTrue: if (push(make_unique<Boolean>(true))) return 1; break;
+                case OpFalse: if (push(make_unique<Boolean>(false))) return 1; break;
+
                 case OpPop:
                     pop();
                     break;

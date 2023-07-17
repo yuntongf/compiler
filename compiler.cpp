@@ -27,7 +27,7 @@ class Compiler {
             InfixExpression* exp = dynamic_cast<InfixExpression*>(node.get());
             if (compile(move(exp->left))) return 1;
             if (compile(move(exp->right))) return 1;
-            
+
             if (exp->Operator == "+") {
                 emit(OpAdd, vector<int>{});
             } else if (exp->Operator == "-") {
@@ -44,6 +44,11 @@ class Compiler {
             IntLiteral* lit = dynamic_cast<IntLiteral*>(node.get());
             // unique_ptr<Object> integer = make_unique<Integer>(lit->value);
             emit(OpConstant, vector<int>{addConstant(make_unique<Integer>(lit->value))});
+        }
+        else if (type == ntypes.BoolLiteral) {
+            BoolLiteral* lit = dynamic_cast<BoolLiteral*>(node.get());
+            if (lit->value) emit(OpTrue, vector<int>{});
+            else emit(OpFalse, vector<int>{});
         }
         return 0;
     }

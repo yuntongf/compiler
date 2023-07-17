@@ -95,6 +95,28 @@ TEST(CompilerTest, PopTest) {
     testConstants(vector<int>{1, 2}, move(bytecode.constants));
 }
 
+TEST(CompilerTest, BooleanTest) {
+    string input = "true; false;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpTrue, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpFalse, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{})
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+}
+
 TEST(CompilerTest, ReadOperandsTest) {
     struct Test {
         OpCode opcode;
@@ -127,6 +149,7 @@ TEST(CompilerTest, InstructionSerializeTest) {
 
     ASSERT_EQ(serialize(concat), expected);
 }
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
