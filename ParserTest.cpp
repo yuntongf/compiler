@@ -409,6 +409,32 @@ TEST(ParserTest, HashTest) {
     ASSERT_EQ(stmt->serialize(), "{one: 1, two: 2}");
 }
 
+TEST(ParserTest, HashIndexTest) {
+    string input = "{one: 1, two: 2}[one]";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    IndexExpression* idx = dynamic_cast<IndexExpression*>(stmt->expression.get());
+    Identifier* id = dynamic_cast<Identifier*>(idx->index.get());
+    ASSERT_EQ(id->value, "one");
+    HashLiteral* exp = dynamic_cast<HashLiteral*>(idx->entity.get());
+    ASSERT_EQ(exp->pairs.size(), 2);
+    string tests[2] = {"one", "two"};
+    int res[2] = {1, 2};
+    int i = 0;
+    for (const auto& pair : exp->pairs) {
+        Identifier* ident = dynamic_cast<Identifier*>(pair.first.get());
+        ASSERT_EQ(ident->value, tests[i]);
+        IntLiteral* lit = dynamic_cast<IntLiteral*>(pair.second.get());
+        ASSERT_EQ(lit->value, res[i]);
+        i++;
+    }
+    ASSERT_EQ(stmt->serialize(), "{one: 1, two: 2}[one]");
+}
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

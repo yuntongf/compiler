@@ -195,3 +195,79 @@ TEST(VMTest, ArrayTest) {
         }
     }
 }
+
+TEST(VMTest, HashTableTest) {
+    vector<VMTest<vector<pair<int, int>>>> tests = {
+        {"{}", vector<pair<int, int>>{}},
+        {"{1: 2, 3: 4}", vector<pair<int, int>>{{1, 2}, {3, 4}}},
+        {"{1: 2, 3: 2 + 4}", vector<pair<int, int>>{{1, 2}, {3, 6}}}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        HashTable* hash = dynamic_cast<HashTable*>(obj.get());
+        ASSERT_EQ(hash->table.size(), test.expected.size());
+        int i = 0;
+        for (auto& entry : hash->table) {
+            Integer* key = dynamic_cast<Integer*>(entry.second.get()->key.get());
+            ASSERT_EQ(key->value, test.expected.at(i).first);
+            Integer* key2 = dynamic_cast<Integer*>(entry.second.get()->value.get());
+            ASSERT_EQ(key2->value, test.expected.at(i++).second);
+        }
+        // ASSERT_EQ(hash->serialize(), "{1: 2, 3: 4}");
+    }
+}
+
+TEST(VMTest, ArrayIndexTest) {
+    vector<VMTest<int>> tests = {
+        {"[1, 2, 3][1]", 2},
+        {"[1, 3, 5 * 4][4 - 2]", 20},
+        {"{1: 2, 3: 4, 2: 1}[3]", 4},
+        // {"{\"hello\": 2, \"world\": 6}[\"hello\"]", 2}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        Integer* integer = dynamic_cast<Integer*>(obj.get());
+        ASSERT_EQ(integer->value, test.expected);
+    }
+}
+
+TEST(VMTest, ArrayIndexNullTest) {
+    auto null = Null();
+    vector<VMTest<Null>> tests = {
+        {"[][9]", null},
+        {"[1, 2, 3][999]", null},
+        {"[][0]", null},
+        {"{1: 2, 3: 4}[2]", null}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        ASSERT_EQ(test.expected.getType(), obj.get()->getType());
+    }
+}
