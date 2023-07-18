@@ -35,6 +35,8 @@ struct NodeType {
     const string InfixExpression = "INFIX_EXPRESSION"; 
     const string StringLiteral = "STRING_LITERAL"; 
     const string IndexExpression = "INDEX_EXPRESSION";
+    const string ArrayLiteral = "ARRAY_LITERAL";
+    const string HashLiteral = "HASH_LITERAL";
 } ntypes;
 
 
@@ -150,6 +152,7 @@ class FnLiteral : public Expression {
 class ArrayLiteral : public Expression {
     public:
     Token token;
+    string type = ntypes.ArrayLiteral;
     vector<unique_ptr<Expression>> elements;
     ArrayLiteral(Token tok, vector<unique_ptr<Expression>>&& elements);
     string serialize() const override;
@@ -162,6 +165,7 @@ class ArrayLiteral : public Expression {
 class HashLiteral : public Expression {
     public:
     Token token;
+    string type = ntypes.HashLiteral;
     map<unique_ptr<Expression>, unique_ptr<Expression>> pairs;
     HashLiteral(Token tok, map<unique_ptr<Expression>, unique_ptr<Expression>>& pairs);
     string serialize() const override;

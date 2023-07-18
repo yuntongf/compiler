@@ -33,10 +33,6 @@ class Compiler {
         last = EmittedInstruction{opcode, ip};
     }
 
-    void addConstants(vector<unique_ptr<Object>>&& constants) {
-        this->constants = move(constants); 
-    }
-
     void removeIfLastPop() {
         if (last.opcode == OpPop) {
             instructions.pop_back();
@@ -145,6 +141,17 @@ class Compiler {
             for (int i = 0; i < stmt->statements.size(); i++) {
                 if (compile(move(stmt->statements.at(i)))) return 1;
             }
+        }
+        else if (type == ntypes.StringLiteral) {
+            StringLiteral* lit = dynamic_cast<StringLiteral*>(node.get());
+            emit(OpConstant, vector<int>{addConstant(make_unique<String>(lit->value))});
+        }
+        else if (type == ntypes.ArrayLiteral) {
+            ArrayLiteral* arr = dynamic_cast<ArrayLiteral*>(node.get());
+            for (auto& exp : arr->elements) {
+                if (compile(move(exp))) return 1; // error compiling element in array
+            }
+            emit(OpArray, vector<int>{(int) arr->elements.size()});
         }
         return 0;
     }

@@ -7,6 +7,7 @@ struct ObjTypes {
     string BOOLEAN_OBJ = "BOOLEAN";
     string NULL_OBJ = "NULL";
     string STRING_OBJ = "STRING";
+    string ARRAY_OBJ = "ARRAY";
 } objs;
 
 class Object {
@@ -69,9 +70,32 @@ class String: public Object {
     string value;
 
     String() = default;
+    String(string val) : value(val) {};
 
     string serialize() const override {
         return value;
+    }
+    string getType() const override {
+        return type;
+    }
+};
+
+class Array: public Object {
+    public:
+    string type = objs.ARRAY_OBJ;
+    vector<unique_ptr<Object>> elements;
+
+    Array(vector<unique_ptr<Object>>&& elements) : elements(move(elements)) {};
+
+    string serialize() const override {
+        string res = "[";
+        int i = 0;
+        for (auto& element : elements) {
+            res += element.get()->serialize();
+            if (i++ < elements.size() - 1) res += ", ";
+        }
+        res += "]";
+        return res;
     }
     string getType() const override {
         return type;

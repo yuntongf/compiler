@@ -129,9 +129,9 @@ TEST(VMTest, VMConditionalNullTest) {
 
 TEST(VMTest, VMLetTest) {
     vector<VMTest<int>> tests = {
-        // {"let one = 1; one;", 1},
-        // {"let one = 1; let two = 2; one + two;", 3},
-        {"let one = 1; let two = one; one + two;", 3}
+        {"let one = 1; one;", 1},
+        {"let one = 1; let two = 2; one + two;", 3},
+        {"let one = 1; let two = one; one + two;", 2}
     };
     for (auto test : tests) {
         auto program = Program();
@@ -145,6 +145,53 @@ TEST(VMTest, VMLetTest) {
 
         unique_ptr<Object>& obj = vm.getLastPopped();
         Integer* integer = dynamic_cast<Integer*>(obj.get());
-        // ASSERT_EQ(integer->value, test.expected);
+        ASSERT_EQ(integer->value, test.expected);
+    }
+}
+
+TEST(VMTest, StringTest) {
+    vector<VMTest<string>> tests = {
+        {"\"hello\"", "hello"},
+        {"\"he\" + \"llo\"", "hello"}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        String* lit = dynamic_cast<String*>(obj.get());
+        ASSERT_EQ(lit->value, test.expected);
+    }
+}
+
+TEST(VMTest, ArrayTest) {
+    vector<VMTest<vector<int>>> tests = {
+        {"[]", vector<int>{}},
+        {"[1]", vector<int>{1}},
+        {"[1, 2 + 4]", vector<int>{1, 6}}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        Array* lit = dynamic_cast<Array*>(obj.get());
+        ASSERT_EQ(lit->elements.size(), test.expected.size());
+        for (int i = 0; i < test.expected.size(); i++) {
+            Integer* intLit = dynamic_cast<Integer*>(lit->elements.at(i).get());
+            ASSERT_EQ(intLit->value, test.expected.at(i));
+        }
     }
 }
