@@ -264,6 +264,33 @@ TEST(CompilerTest, IfElseTest) {
     testConstants(vector<int>{1, 2, 3}, move(bytecode.constants));
 }
 
+TEST(CompilerTest, LetTest) {
+    string input = "let one = 4; let two = 5; let two = one; one;";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpSetGlobal, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpSetGlobal, vector<int>{1}),
+        constructByteCode(OpGetGlobal, vector<int>{0}),
+        constructByteCode(OpSetGlobal, vector<int>{1}),
+        constructByteCode(OpGetGlobal, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}) 
+    };
+    // cout << serialize(bytecode.instructions) << endl;
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{4, 5}, move(bytecode.constants));
+}
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

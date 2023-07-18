@@ -30,7 +30,7 @@ TEST(VMTest, VMIntegerTest) {
         {"2 - 3", -1},
         {"4 * 3", 12},
         {"4 / 2", 2},
-        {"-2 - 2", -4}
+        {"-2 - 2", -4},
     };
     for (auto test : tests) {
         auto program = Program();
@@ -124,5 +124,27 @@ TEST(VMTest, VMConditionalNullTest) {
 
         unique_ptr<Object>& obj = vm.getLastPopped();
         ASSERT_EQ(test.expected.getType(), obj.get()->getType());
+    }
+}
+
+TEST(VMTest, VMLetTest) {
+    vector<VMTest<int>> tests = {
+        // {"let one = 1; one;", 1},
+        // {"let one = 1; let two = 2; one + two;", 3},
+        {"let one = 1; let two = one; one + two;", 3}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        Integer* integer = dynamic_cast<Integer*>(obj.get());
+        // ASSERT_EQ(integer->value, test.expected);
     }
 }

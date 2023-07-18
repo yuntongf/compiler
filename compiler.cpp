@@ -1,6 +1,7 @@
 #include"bytecode.cpp"
 #include"object.cpp"
 #include"parser.cpp"
+#include"symbol.cpp"
 
 struct ByteCode {
     Instruction instructions;
@@ -18,13 +19,22 @@ class Compiler {
     vector<unique_ptr<Object>> constants;
     EmittedInstruction last;
     EmittedInstruction prevLast;
+    SymbolTable symbolTable;
 
     public:
-    Compiler() = default;
+    Compiler() {
+        symbolTable = SymbolTable();
+    };
+
+    // Compiler(SymbolTable* st, vector<unique_ptr<Object>>&& constants) : symbolTable(*st), constants(move(constants)) {};
 
     void setLastInstruction(OpCode opcode, int ip) {
         prevLast = last;
         last = EmittedInstruction{opcode, ip};
+    }
+
+    void addConstants(vector<unique_ptr<Object>>&& constants) {
+        this->constants = move(constants); 
     }
 
     void removeIfLastPop() {
@@ -46,7 +56,20 @@ class Compiler {
     template<typename T> int compile(unique_ptr<T> node) {
         string type = node.get()->getType();
         // cout << type <<endl;
-        if (type == ntypes.ExpressionStatement) {
+        if (type == ntypes.Identifier) {
+            Identifier* ident = dynamic_cast<Identifier*>(node.get());
+            // auto symbol = symbolTable.resolve(ident->value);
+            emit(OpGetGlobal, vector<int>{symbolTable.resolve(ident->value).get()->index});
+        }
+        else if (type == ntypes.LetStatement) {
+            LetStatement* stmt = dynamic_cast<LetStatement*>(node.get());
+            // if (compile(move(stmt->identifier))) return 1; // failed to compile identifier expression
+            if (compile(move(stmt->value))) return 1; // failed to compile let statement expression
+            // store to symbol table
+            // auto symbol = symbolTable.define(stmt->identifier.value);
+            emit(OpSetGlobal, vector<int>{symbolTable.define(stmt->identifier.value).get()->index});
+        }
+        else if (type == ntypes.ExpressionStatement) {
             ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(node.get());
             if (compile(move(stmt->expression))) return 1;
             emit(OpPop, vector<int>{});

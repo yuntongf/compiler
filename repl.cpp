@@ -7,6 +7,10 @@ using namespace std;
 #define MAX_INPUT_LENGTH 200
 
 void repl() {
+    // auto constants = vector<unique_ptr<Object>>();
+    // auto globals = vector<unique_ptr<Object>>(globalsSize);
+    // auto symbolTable = SymbolTable();
+    // auto compiler = Compiler();
     while (1) {
         cout << "> ";
         char input[MAX_INPUT_LENGTH];
@@ -22,6 +26,7 @@ void repl() {
         int err = compiler.compileProgram(&program);
         if (err) cout << "test failed due to error in compiler..." << endl;
 
+        // auto bytecode = compiler.getByteCode();
         auto vm = VM(compiler.getByteCode());
         if (vm.run()) cout << "test failed due to error in vm..." << endl;
 
