@@ -37,7 +37,12 @@ template<typename T> void testConstants(vector<T> expected, vector<unique_ptr<Ob
             Integer* lit = dynamic_cast<Integer*>(actual.at(i).get());
             ASSERT_EQ(expected.at(i), lit->value);
         }
-    }
+    } else if (is_same<T, string>::value) {
+        for (int i = 0; i < expected.size(); i++) {
+            String* lit = dynamic_cast<String*>(actual.at(i).get());
+            ASSERT_EQ(expected.at(i), lit->value);
+        }
+    } 
 }
 
 Instruction concatInstructions(vector<Instruction> instructions) {
@@ -290,6 +295,27 @@ TEST(CompilerTest, LetTest) {
     // cout << serialize(bytecode.instructions) << endl;
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{4, 5}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, StringTest) {
+    string input = "\"hello\";";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<string>{"hello"}, bytecode.constants);
 }
 
 int main(int argc, char** argv) {

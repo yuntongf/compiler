@@ -6,6 +6,7 @@ struct ObjTypes {
     string INTEGER_OBJ = "INTEGER";
     string BOOLEAN_OBJ = "BOOLEAN";
     string NULL_OBJ = "NULL";
+    string STRING_OBJ = "STRING";
 } objs;
 
 class Object {
@@ -56,6 +57,21 @@ class Null: public Object {
 
     string serialize() const override {
         return "null";
+    }
+    string getType() const override {
+        return type;
+    }
+};
+
+class String: public Object {
+    public:
+    string type = objs.STRING_OBJ;
+    string value;
+
+    String() = default;
+
+    string serialize() const override {
+        return value;
     }
     string getType() const override {
         return type;

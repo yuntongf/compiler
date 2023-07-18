@@ -10,6 +10,7 @@ struct TokenType {
     // Identifiers + literals
     const string IDENT = "IDENTIFIER";
     const string INT = "INT";
+    const string STRING = "STRING";
 
     // Operators
     const string ASSIGN = "ASSIGN";
@@ -27,11 +28,14 @@ struct TokenType {
     // Delimiters
     const string COMMA = "COMMA";
     const string SEMICOLON = "SEMICOLON";
+    const string COLON = ":";
 
     const string LPAREN = "LEFT_PARENTHESIS";
     const string RPAREN = "RIGHT_PARENTHESIS";
     const string LBRACE = "LEFT_BRACE";
     const string RBRACE = "RIGHT_BRACE";
+    const string LBRACKET = "LEFT_BRACKET";
+    const string RBRACKET = "RIGHT_BRACKET";
 
     // Keywords
     const string FUNCTION = "FUNCTION";

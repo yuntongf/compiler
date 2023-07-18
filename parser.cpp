@@ -12,7 +12,8 @@ enum { // determines the "right-binding power" of an operation
     SUM,
     PRODUCT,
     PREFIX,
-    CALL
+    CALL,
+    INDEX
 };
 class Parser {
     Lexer l;
@@ -44,6 +45,9 @@ class Parser {
     unique_ptr<Expression> parseIntLiteral();
     unique_ptr<Expression> parseBoolLiteral();
     unique_ptr<Expression> parseFnLiteral();
+    unique_ptr<Expression> parseStringLiteral();
+    unique_ptr<Expression> parseArrayLiteral();
+    unique_ptr<Expression> parseHashLiteral();
 
     unique_ptr<Expression> parseExpression(int precedence);
     unique_ptr<Expression> parsePrefixExpression();
@@ -51,6 +55,7 @@ class Parser {
     unique_ptr<Expression> parseGroupedExpression();
     unique_ptr<Expression> parseIfExpression();
     unique_ptr<Expression> parseCallExpression(unique_ptr<Expression>& function);
+    unique_ptr<Expression> parseIndexExpression(unique_ptr<Expression>& entity);
     // void prefixParser(Expression* expression);
     // void infixParser(Expression* expression); // argument is the left side of the infix operator
 };
@@ -189,7 +194,10 @@ map<string, pPrefixParser> prefixParsers = {
     {types.MINUS, &Parser::parsePrefixExpression},
     {types.LPAREN, &Parser::parseGroupedExpression},
     {types.IF, &Parser::parseIfExpression},
-    {types.FUNCTION, &Parser::parseFnLiteral}
+    {types.FUNCTION, &Parser::parseFnLiteral},
+    {types.STRING, &Parser::parseStringLiteral},
+    {types.LBRACKET, &Parser::parseArrayLiteral},
+    {types.LBRACE, &Parser::parseHashLiteral}
 };
 map<string, pInfixParser> infixParsers = {
     {types.EQ, &Parser::parseInfixExpression},
@@ -200,7 +208,8 @@ map<string, pInfixParser> infixParsers = {
     {types.MINUS, &Parser::parseInfixExpression},
     {types.SLASH, &Parser::parseInfixExpression},
     {types.ASTERISK, &Parser::parseInfixExpression},
-    {types.LPAREN, &Parser::parseCallExpression}
+    {types.LPAREN, &Parser::parseCallExpression},
+    {types.LBRACKET, &Parser::parseIndexExpression}
 };
 map<string, int> precedences = {
     {types.EQ, EQUALS},
@@ -211,7 +220,8 @@ map<string, int> precedences = {
     {types.MINUS, SUM},
     {types.SLASH, PRODUCT},
     {types.ASTERISK, PRODUCT},
-    {types.LPAREN, CALL}
+    {types.LPAREN, CALL},
+    {types.LBRACKET, INDEX}
 
 };
 
@@ -260,6 +270,10 @@ unique_ptr<Expression> Parser::parseBoolLiteral() {
     return make_unique<BoolLiteral>(currTok, boolean);
 }
 
+unique_ptr<Expression> Parser::parseStringLiteral() {
+    return make_unique<StringLiteral>(currTok, currTok.literal);
+}
+
 unique_ptr<Expression> Parser::parseFnLiteral() {
     Token tok = currTok;
     readToken(); // skip 'fn'
@@ -290,6 +304,58 @@ unique_ptr<Expression> Parser::parseFnLiteral() {
         return make_unique<FnLiteral>(tok, move(params), body);
     }
 }
+
+unique_ptr<Expression> Parser::parseArrayLiteral() {
+    Token tok = currTok;
+    vector<unique_ptr<Expression>> elements;
+    readToken();
+    while (currTok.type != types.RBRACKET) {
+        unique_ptr<Expression> element = parseExpression(LOWEST);
+        if (element == nullptr) {
+            errors.push_back("Failed to parse parameters of array");
+            return nullptr;
+        }
+        elements.push_back(move(element));
+        readToken(); // skip current identifier
+        if (currTok.type == types.COMMA) readToken(); // skip 
+        else if (currTok.type != types.RBRACKET) {
+            errors.push_back("Expect ',' or ']', but instead got " + currTok.literal);
+            return nullptr;
+        }
+    }
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
+    return make_unique<ArrayLiteral>(tok, move(elements));
+}
+
+unique_ptr<Expression> Parser::parseHashLiteral() {
+    Token tok = currTok;
+    readToken();
+    map<unique_ptr<Expression>, unique_ptr<Expression>> pairs = {};
+    while (currTok.type != types.RBRACE) {
+        unique_ptr<Expression> key = parseExpression(LOWEST);
+        readToken();
+        if (currTok.type != types.COLON) {
+            errors.push_back("expected ':', but was" + currTok.literal);
+            return nullptr;
+        } else readToken();
+
+        unique_ptr<Expression> val = parseExpression(LOWEST);
+        pairs.insert(make_pair(move(key), move(val)));
+        readToken();
+        if (currTok.type == types.COMMA) {
+            readToken();
+        }
+        else if (currTok.type != types.RBRACE) {
+            errors.push_back("expected '}' or ',', but got "+currTok.literal);
+            return nullptr;
+        } 
+    }
+    readToken(); // skip to "}"
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip optional ';'
+    return make_unique<HashLiteral>(tok, pairs);
+
+}
+
 unique_ptr<Expression> Parser::parsePrefixExpression() {
     Token tok = currTok;
     string Operator = currTok.literal;
@@ -366,5 +432,17 @@ unique_ptr<Expression> Parser::parseIfExpression() {
     } 
     if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
     return make_unique<IfExpression>(tok, condition, consequence, alternative);
+}
+
+unique_ptr<Expression> Parser::parseIndexExpression(unique_ptr<Expression>& entity) {
+    Token tok = currTok;
+    readToken();
+    unique_ptr<Expression> index = parseExpression(LOWEST);
+    if (nextTok.type != types.RBRACKET) {
+        errors.push_back("expect ']' after index");
+        return nullptr;
+    } else readToken(); // skip to ']'
+    if (nextTok.type == types.SEMICOLON) readToken(); // skip optional ';'
+    return make_unique<IndexExpression>(tok, entity, index);
 }
 
