@@ -166,8 +166,8 @@ class HashLiteral : public Expression {
     public:
     Token token;
     string type = ntypes.HashLiteral;
-    map<unique_ptr<Expression>, unique_ptr<Expression>> pairs;
-    HashLiteral(Token tok, map<unique_ptr<Expression>, unique_ptr<Expression>>& pairs);
+    vector<pair<unique_ptr<Expression>, unique_ptr<Expression>>> pairs;
+    HashLiteral(Token tok, vector<pair<unique_ptr<Expression>, unique_ptr<Expression>>>& pairs);
     string serialize() const override;
     string getType() const override;
 };

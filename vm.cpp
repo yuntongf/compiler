@@ -202,6 +202,57 @@ class VM {
                     push(make_unique<Array>(move(elements)));
                 }
                 break;
+                case OpHash:
+                {
+                    int numElements = 0;
+                    for (int i = 0; i < 4; i++) {
+                        numElements = (numElements << 8) | (int) instructions.at(++ip);
+                    }
+
+                    // make hashtable
+                    map<HashKey, unique_ptr<HashPair>> table = {};
+                    for (int p = sp - numElements; p < sp; p+=2) {
+                        if (!stack.at(p).get()->hashable()) {
+                            return 1; // cannot hash
+                        }
+                        auto key = hashKey(stack.at(p));
+                        table[key] = make_unique<HashPair>(stack.at(p), stack.at(p + 1));
+                    }
+                    push(make_unique<HashTable>(move(table)));
+                }
+                break;
+                case OpIndex:
+                {
+                    unique_ptr<Object>& index = pop();
+                    unique_ptr<Object>& entity = pop();
+                    string type = entity.get()->getType();
+                    if (type == objs.ARRAY_OBJ) {
+                        if (index.get()->getType() != objs.INTEGER_OBJ) {
+                            return 1; // invalid index
+                        }
+                        Integer* integer = dynamic_cast<Integer*>(index.get());
+                        Array* arr = dynamic_cast<Array*>(entity.get());
+                        int idx = integer->value;
+                        if (idx < 0 || idx >= arr->elements.size()) {
+                            push(make_unique<Null>());
+                        } else {
+                            push(move(copyPtr(arr->elements.at(idx))));
+                        }
+                    } else if (type == objs.HASH_TABLE) {
+                        if (!index.get()->hashable()) {
+                            return 1; // key is not hashable
+                        };
+                        
+                        auto key = hashKey(index);
+                        HashTable* table = dynamic_cast<HashTable*>(entity.get());
+                        if (table->table.count(key) == 0) {
+                            push(make_unique<Null>());
+                        } else {
+                            push(move(table->table[key].get()->value));
+                        }
+                    }
+                }
+                break;
                 default:
                     break;
             }
@@ -217,10 +268,12 @@ class VM {
         } else if (type == objs.INTEGER_OBJ) {
             Integer* integer = dynamic_cast<Integer*>(up.get());
             return make_unique<Integer>(*integer);
+        } else if (type == objs.STRING_OBJ) {
+            String* str = dynamic_cast<String*>(up.get());
+            return make_unique<String>(*str);
         } else {
             return make_unique<Null>();
         }
-        
     }
 
     unique_ptr<Object> buildArray(int start, int end) {

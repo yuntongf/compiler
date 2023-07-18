@@ -237,7 +237,6 @@ unique_ptr<Expression> Parser::parseExpression(int precedence) {
         nextPrecedence = precedences[nextTok.type];
     }
     while (nextTok.type != types.SEMICOLON && nextTok.type != types.EoF && precedence < nextPrecedence) {
-        // if (nextTok.type == types.RPAREN) readToken();
         pInfixParser infixParser = infixParsers[nextTok.type];
         if (infixParser == nullptr) {
             return leftExpression;
@@ -330,7 +329,7 @@ unique_ptr<Expression> Parser::parseArrayLiteral() {
 unique_ptr<Expression> Parser::parseHashLiteral() {
     Token tok = currTok;
     readToken();
-    map<unique_ptr<Expression>, unique_ptr<Expression>> pairs = {};
+    vector<pair<unique_ptr<Expression>, unique_ptr<Expression>>> pairs = {};
     while (currTok.type != types.RBRACE) {
         unique_ptr<Expression> key = parseExpression(LOWEST);
         readToken();
@@ -340,7 +339,7 @@ unique_ptr<Expression> Parser::parseHashLiteral() {
         } else readToken();
 
         unique_ptr<Expression> val = parseExpression(LOWEST);
-        pairs.insert(make_pair(move(key), move(val)));
+        pairs.push_back(make_pair(move(key), move(val)));
         readToken();
         if (currTok.type == types.COMMA) {
             readToken();
@@ -350,7 +349,6 @@ unique_ptr<Expression> Parser::parseHashLiteral() {
             return nullptr;
         } 
     }
-    readToken(); // skip to "}"
     if (nextTok.type == types.SEMICOLON) readToken(); // skip optional ';'
     return make_unique<HashLiteral>(tok, pairs);
 

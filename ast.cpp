@@ -53,7 +53,7 @@ string ArrayLiteral::serialize() const {
 }
 string ArrayLiteral::getType() const {return type;};
 
-HashLiteral::HashLiteral(Token tok, map<unique_ptr<Expression>, unique_ptr<Expression>>& pairs) : token(tok), pairs(move(pairs)) {};
+HashLiteral::HashLiteral(Token tok, vector<pair<unique_ptr<Expression>, unique_ptr<Expression>>>& pairs) : token(tok), pairs(move(pairs)) {};
 string HashLiteral::serialize() const {
     string res = "{";
     int i = 0;

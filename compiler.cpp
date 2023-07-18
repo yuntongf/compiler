@@ -153,6 +153,20 @@ class Compiler {
             }
             emit(OpArray, vector<int>{(int) arr->elements.size()});
         }
+        else if (type == ntypes.HashLiteral) {
+            HashLiteral* hash = dynamic_cast<HashLiteral*>(node.get());
+            for (auto& pair : hash->pairs) {
+                if (compile(move(pair.first))) return 1;
+                if (compile(move(pair.second))) return 1;
+            }
+            emit(OpHash, vector<int>{(int) hash->pairs.size() * 2});
+        }
+        else if (type == ntypes.IndexExpression) {
+            IndexExpression* index = dynamic_cast<IndexExpression*>(node.get());
+            if (compile(move(index->entity))) return 1; // failed to compile entity
+            if (compile(move(index->index))) return 1; // failed to compile index
+            emit(OpIndex, vector<int>{});
+        }
         return 0;
     }
 

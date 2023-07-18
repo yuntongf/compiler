@@ -389,6 +389,68 @@ TEST(CompilerTest, ArrayExpressionTest) {
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{1, 2, 5, 4, 3}, move(bytecode.constants));
 }
+TEST(CompilerTest, ArrayIndexTest) {
+    string input = "[1, 2 * 5, 4 - 3][7 + 8]";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpMul, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{3}),
+        constructByteCode(OpConstant, vector<int>{4}),
+        constructByteCode(OpSub, vector<int>{}),
+        constructByteCode(OpArray, vector<int>{3}),
+        constructByteCode(OpConstant, vector<int>{5}),
+        constructByteCode(OpConstant, vector<int>{6}),
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpIndex, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 2, 5, 4, 3, 7, 8}, move(bytecode.constants));
+}
+
+TEST(CompilerTest, HashTest) {
+    string input = "{1: 3, 2: 4 * 5, 3: 4 - 6}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpConstant, vector<int>{3}),
+        constructByteCode(OpConstant, vector<int>{4}),
+        constructByteCode(OpMul, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{5}),
+        constructByteCode(OpConstant, vector<int>{6}),
+        constructByteCode(OpConstant, vector<int>{7}),
+        constructByteCode(OpSub, vector<int>{}),
+        constructByteCode(OpHash, vector<int>{6}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    testConstants(vector<int>{1, 3, 2, 4, 5, 3, 4, 6}, move(bytecode.constants));
+}
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
