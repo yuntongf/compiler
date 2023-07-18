@@ -47,6 +47,9 @@ const OpCode OpSurprise{12};
 const OpCode OpJumpIfFalse{13};
 const OpCode OpJump{14};
 const OpCode OpNull{15};
+const OpCode OpSetGlobal{16};
+const OpCode OpGetGlobal{17};
+
 
 // add definitions for debug purpose
 struct Definition {
@@ -69,7 +72,9 @@ map<OpCode, Definition> defs = {
     {OpSurprise, {"OpSurprise", vector<int>{}}},
     {OpJumpIfFalse, {"OpJumpIfFalse", vector<int>{4}}},
     {OpJump, {"OpJump", vector<int>{4}}},
-    {OpNull, {"OpNull", vector<int>{}}}
+    {OpNull, {"OpNull", vector<int>{}}},
+    {OpGetGlobal, {"OpGetGlobal", vector<int>{4}}},
+    {OpSetGlobal, {"OpSetGlobal", vector<int>{4}}}
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;

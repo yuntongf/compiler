@@ -4,10 +4,12 @@
 using namespace std;
 
 const int stackSize = 2048;
+const int globalsSize = 4096;
 
 class VM {
     public:
     vector<unique_ptr<Object>> constants;
+    vector<unique_ptr<Object>> globals;
     Instruction instructions;
 
     vector<unique_ptr<Object>> stack;
@@ -16,11 +18,13 @@ class VM {
     VM(ByteCode bytecode) {
         instructions = bytecode.instructions;
         constants = move(bytecode.constants);
+        globals = vector<unique_ptr<Object>>(globalsSize);
         stack = vector<unique_ptr<Object>>(stackSize);
         sp = 0;
-    }
+    };
 
     unique_ptr<Object>& getLastPopped() {
+        // cout << "sp is" << sp << endl;
         return stack.at(sp);
     }
 
@@ -149,10 +153,43 @@ class VM {
                     }
                 }
                 break;
+                case OpGetGlobal:
+                {   
+                    int index = 0;
+                    for (int i = 0; i < 4; i++) {
+                        index = (index << 8) | (int) instructions.at(++ip);
+                    }
+                    unique_ptr<Object> up = copyPtr(globals.at(index));
+                    push(move(up));
+                }
+                break;
+                case OpSetGlobal:
+                {   
+                    int index = 0;
+                    for (int i = 0; i < 4; i++) {
+                        index = (index << 8) | (int) instructions.at(++ip);
+                    }
+                    globals.at(index) = move(pop());
+                }
+                break;
                 default:
                     break;
             }
         }
         return 0;
+    }
+
+    template<typename T> unique_ptr<Object> copyPtr(unique_ptr<T>& up) {
+        string type = up.get()->getType();
+        if (type == objs.BOOLEAN_OBJ) {
+            Boolean* boolean = dynamic_cast<Boolean*>(up.get());
+            return make_unique<Boolean>(*boolean);
+        } else if (type == objs.INTEGER_OBJ) {
+            Integer* integer = dynamic_cast<Integer*>(up.get());
+            return make_unique<Integer>(*integer);
+        } else {
+            return make_unique<Null>();
+        }
+        
     }
 };
