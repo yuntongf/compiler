@@ -32,7 +32,11 @@ struct NodeType {
     const string ExpressionStatement = "EXPRESSION_STATEMENT";
     const string IfExpression = "IF_EXPRESSION";
     const string PrefixExpression = "PREFIX_EXPRESSION";
-    const string InfixExpression = "INFIX_EXPRESSION";  
+    const string InfixExpression = "INFIX_EXPRESSION"; 
+    const string StringLiteral = "STRING_LITERAL"; 
+    const string IndexExpression = "INDEX_EXPRESSION";
+    const string ArrayLiteral = "ARRAY_LITERAL";
+    const string HashLiteral = "HASH_LITERAL";
 } ntypes;
 
 
@@ -125,6 +129,16 @@ class BoolLiteral : public Expression {
     string serialize() const final override;
     string getType() const final override;
 };
+class StringLiteral : public Expression {
+    public:
+    Token token;
+    string type = ntypes.StringLiteral;
+    string value;
+
+    StringLiteral(Token tok, string val);
+    string serialize() const final override;
+    string getType() const final override;
+};
 class FnLiteral : public Expression {
     public:
     Token token;
@@ -132,6 +146,28 @@ class FnLiteral : public Expression {
     vector<unique_ptr<Expression>> params;
     unique_ptr<BlockStatement> body;
     FnLiteral(Token tok, vector<unique_ptr<Expression>>&& params, unique_ptr<BlockStatement>& body);
+    string serialize() const override;
+    string getType() const override;
+};
+class ArrayLiteral : public Expression {
+    public:
+    Token token;
+    string type = ntypes.ArrayLiteral;
+    vector<unique_ptr<Expression>> elements;
+    ArrayLiteral(Token tok, vector<unique_ptr<Expression>>&& elements);
+    string serialize() const override;
+    string getType() const override;
+};
+// struct HashPair {
+//     Expression* key;
+//     Expression* value;
+// };
+class HashLiteral : public Expression {
+    public:
+    Token token;
+    string type = ntypes.HashLiteral;
+    map<unique_ptr<Expression>, unique_ptr<Expression>> pairs;
+    HashLiteral(Token tok, map<unique_ptr<Expression>, unique_ptr<Expression>>& pairs);
     string serialize() const override;
     string getType() const override;
 };
@@ -143,6 +179,17 @@ class PrefixExpression : public Expression {
     unique_ptr<Expression> right;
     PrefixExpression();
     PrefixExpression(Token tok, string Operator, unique_ptr<Expression>& right);
+    string serialize() const override;
+    string getType() const override;
+};
+class IndexExpression : public Expression {
+    public:
+    Token token;
+    string type = ntypes.IndexExpression;
+    unique_ptr<Expression> entity;
+    unique_ptr<Expression> index;
+
+    IndexExpression(Token tok, unique_ptr<Expression>& entity, unique_ptr<Expression>& index);
     string serialize() const override;
     string getType() const override;
 };

@@ -95,6 +95,9 @@ class Lexer {
             case ',':
                 token = NewToken(types.COMMA, currChar);
                 break;
+            case ':':
+                token = NewToken(types.COLON, currChar);
+                break;
             case '+':
                 token = NewToken(types.PLUS, currChar);
                 break;
@@ -122,6 +125,12 @@ class Lexer {
             case '>':
                 token = NewToken(types.GREATER, currChar);
                 break;
+            case '[':
+                token = NewToken(types.LBRACKET, currChar);
+                break;
+            case ']':
+                token = NewToken(types.RBRACKET, currChar);
+                break;
             case '{':
                 token = NewToken(types.LBRACE, currChar);
                 break;
@@ -130,6 +139,18 @@ class Lexer {
                 break;
             case '\0':
                 token = NewToken(types.EoF, currChar);
+                break;
+            case '\"':
+            {
+                token.type = types.STRING;
+                string lit = "";
+                readChar();
+                while (currChar != '\"' && currChar != 0) {
+                    lit += currChar;
+                    readChar();
+                }
+                token.literal = lit;
+            }
                 break;
             default:
                 if (isLetter(currChar)) {

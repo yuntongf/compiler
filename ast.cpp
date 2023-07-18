@@ -21,6 +21,10 @@ BoolLiteral::BoolLiteral(Token tok, bool val) : token(tok), value(val){};
 string BoolLiteral::serialize() const {return token.literal;}
 string BoolLiteral::getType() const {return type;};
 
+StringLiteral::StringLiteral(Token tok, string val) : token(tok), value(val) {};
+string StringLiteral::serialize() const {return "\"" + value + "\"";};
+string StringLiteral::getType() const {return type;};
+
 FnLiteral::FnLiteral(Token tok, vector<unique_ptr<Expression>>&& params, unique_ptr<BlockStatement>& body) : token(tok), params(move(params)), body(move(body)) {};
 string FnLiteral::serialize() const {
     string paramStr = "(";
@@ -36,6 +40,45 @@ string FnLiteral::serialize() const {
     return "fn" + paramStr + body.get()->serialize();
 }
 string FnLiteral::getType() const {return type;};
+
+ArrayLiteral::ArrayLiteral(Token tok, vector<unique_ptr<Expression>>&& elements) : token(tok), elements(move(elements)) {};
+string ArrayLiteral::serialize() const {
+    string res = "[";
+    for (int i = 0; i < elements.size(); i++) {
+        res += elements.at(i).get()->serialize();
+        if (i < elements.size() - 1) res += ", ";
+    }
+    res += "]";
+    return res;
+}
+string ArrayLiteral::getType() const {return type;};
+
+HashLiteral::HashLiteral(Token tok, map<unique_ptr<Expression>, unique_ptr<Expression>>& pairs) : token(tok), pairs(move(pairs)) {};
+string HashLiteral::serialize() const {
+    string res = "{";
+    int i = 0;
+    for (const auto& pair : pairs) {
+        res += pair.first.get()->serialize();
+        res += ": ";
+        res += pair.second.get()->serialize();
+        if (i++ < pairs.size() - 1) res += ", ";
+    }
+    res += "}";
+    return res;
+}
+string HashLiteral::getType() const {return type;};
+
+IndexExpression::IndexExpression(Token tok, unique_ptr<Expression>& entity, unique_ptr<Expression>& index) : token(tok), entity(move(entity)), index(move(index)) {};
+string IndexExpression::serialize() const {
+    string res = entity.get()->serialize();
+    res += "[";
+    res += index.get()->serialize();
+    res += "]";
+    return res;
+}
+string IndexExpression::getType() const {
+    return type;
+}
 
 PrefixExpression::PrefixExpression() = default;
 PrefixExpression::PrefixExpression(Token tok, string Operator, unique_ptr<Expression>& right) : token(tok), Operator(Operator), right(move(right)) {};

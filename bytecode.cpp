@@ -49,6 +49,7 @@ const OpCode OpJump{14};
 const OpCode OpNull{15};
 const OpCode OpSetGlobal{16};
 const OpCode OpGetGlobal{17};
+const OpCode OpArray{18};
 
 
 // add definitions for debug purpose
@@ -74,7 +75,8 @@ map<OpCode, Definition> defs = {
     {OpJump, {"OpJump", vector<int>{4}}},
     {OpNull, {"OpNull", vector<int>{}}},
     {OpGetGlobal, {"OpGetGlobal", vector<int>{4}}},
-    {OpSetGlobal, {"OpSetGlobal", vector<int>{4}}}
+    {OpSetGlobal, {"OpSetGlobal", vector<int>{4}}},
+    {OpArray, {"OpArray", vector<int>{4}}}
 };
 int lookup(byte opcode) {
     return defs.count(opcode) > 0 ? 0 : 1;

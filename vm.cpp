@@ -48,7 +48,12 @@ class VM {
         } else if (type == objs.INTEGER_OBJ) {
             Integer* integer = dynamic_cast<Integer*>(obj.get());
             return integer->value;
-        } else {
+        } 
+        // else if (type == objs.STRING_OBJ) {
+        //     String* str = dynamic_cast<String*>(obj.get());
+        //     return str->value
+        // } 
+        else {
             return -1; // cannot assign boolean value to object type 
         }
     }
@@ -68,28 +73,38 @@ class VM {
                     }
                     break;
                 case OpAdd: case OpMul: case OpDiv: case OpSub:
-                    // pop top two elements and add them
-                    {   
-                        unique_ptr<Object>& right = pop();
-                        unique_ptr<Object>& left = pop();
-                        if (left.get()->getType() != objs.INTEGER_OBJ || right.get()->getType() != objs.INTEGER_OBJ) {
-                            return 1; // wrong type
-                        }
-                        Integer* leftInt = dynamic_cast<Integer*>(left.get());
-                        Integer* rightInt = dynamic_cast<Integer*>(right.get());
-                        int res = 0;
-                        switch (opcode) {
-                            case OpAdd: res = leftInt->value + rightInt->value; break;
-                            case OpSub: res = leftInt->value - rightInt->value; break;
-                            case OpMul: res = leftInt->value * rightInt->value; break;
-                            case OpDiv: res = leftInt->value / rightInt->value; break;
-                            default:
-                                return 1; // unrecognized operation
-                        }
-                        unique_ptr<Object> o = make_unique<Integer>(res);
-                        if (push(move(o))) return 1;
+                {
+                    unique_ptr<Object>& right = pop();
+                    unique_ptr<Object>& left = pop();
+
+                    // string concat
+                    if (opcode == OpAdd && left.get()->getType() == objs.STRING_OBJ && right.get()->getType() == objs.STRING_OBJ) {
+                        String* leftStr = dynamic_cast<String*>(left.get());
+                        String* rightStr = dynamic_cast<String*>(right.get());
+                        unique_ptr<Object> o = make_unique<String>(leftStr->value + rightStr->value);
+                        if (push(move(o))) return 1; // failed to push str to stack
+                        break;
                     }
-                    break;
+
+                    // integer arithemtic
+                    if (left.get()->getType() != objs.INTEGER_OBJ || right.get()->getType() != objs.INTEGER_OBJ) {
+                        return 1; // wrong type
+                    }
+                    Integer* leftInt = dynamic_cast<Integer*>(left.get());
+                    Integer* rightInt = dynamic_cast<Integer*>(right.get());
+                    int res = 0;
+                    switch (opcode) {
+                        case OpAdd: res = leftInt->value + rightInt->value; break;
+                        case OpSub: res = leftInt->value - rightInt->value; break;
+                        case OpMul: res = leftInt->value * rightInt->value; break;
+                        case OpDiv: res = leftInt->value / rightInt->value; break;
+                        default:
+                            return 1; // unrecognized operation
+                    }
+                    unique_ptr<Object> o = make_unique<Integer>(res);
+                    if (push(move(o))) return 1;
+                }    
+                break;
                 case OpTrue: if (push(make_unique<Boolean>(true))) return 1; break;
                 case OpFalse: if (push(make_unique<Boolean>(false))) return 1; break;
                 case OpEq: case OpNeq: case OpGt:
@@ -172,6 +187,21 @@ class VM {
                     globals.at(index) = move(pop());
                 }
                 break;
+                case OpArray:
+                {
+                    int numElements = 0;
+                    for (int i = 0; i < 4; i++) {
+                        numElements = (numElements << 8) | (int) instructions.at(++ip);
+                    }
+
+                    // build array
+                    auto elements = vector<unique_ptr<Object>>(numElements);
+                    for (int p = 0; p < numElements; p++) {
+                        elements.at(p) = move(stack.at(sp-numElements + p));
+                    }
+                    push(make_unique<Array>(move(elements)));
+                }
+                break;
                 default:
                     break;
             }
@@ -191,5 +221,13 @@ class VM {
             return make_unique<Null>();
         }
         
+    }
+
+    unique_ptr<Object> buildArray(int start, int end) {
+        auto elements = vector<unique_ptr<Object>>(end - start);
+        for (int p = start; p < end; p++) {
+            elements.at(p-start) = move(stack.at(p));
+        }
+        return make_unique<Array>(move(elements));
     }
 };

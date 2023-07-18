@@ -347,6 +347,69 @@ TEST(ParserTest, FnAsParamTest) {
     ASSERT_EQ(stmt->serialize(), "add(a, b, (((3 + 5) / 6) * --8), fn(x, y, z){return ((x - c) + z);}((5 - 6)))");
 }
 
+TEST(ParserTest, StringTest) {
+    string input = "\"hello world\";";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    StringLiteral* exp = dynamic_cast<StringLiteral*>(stmt->expression.get());
+    ASSERT_EQ(exp->value, "hello world");
+}
+
+TEST(ParserTest, ArrayTest) {
+    string input = "[1, 2 * 3, a, \"string\"];";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    ASSERT_EQ(stmt->serialize(), "[1, (2 * 3), a, \"string\"]");
+}
+
+TEST(ParserTest, IndexExpressionTest) {
+    string input = "[1, 2 * 3, a, \"string\"][1 + 2];";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    IndexExpression* exp = dynamic_cast<IndexExpression*>(stmt->expression.get());
+    ArrayLiteral* arr = dynamic_cast<ArrayLiteral*>(exp->entity.get());
+    ASSERT_EQ(arr->token.type, types.LBRACKET);
+    InfixExpression* infix = dynamic_cast<InfixExpression*>(exp->index.get());
+    ASSERT_EQ(infix->serialize(), "(1 + 2)");
+    ASSERT_EQ(stmt->serialize(), "[1, (2 * 3), a, \"string\"][(1 + 2)]");
+}
+
+TEST(ParserTest, HashTest) {
+    string input = "{one: 1, two: 2}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(program.statements.at(0).get());
+    HashLiteral* exp = dynamic_cast<HashLiteral*>(stmt->expression.get());
+    ASSERT_EQ(exp->pairs.size(), 2);
+    string tests[2] = {"one", "two"};
+    int res[2] = {1, 2};
+    int i = 0;
+    for (const auto& pair : exp->pairs) {
+        Identifier* ident = dynamic_cast<Identifier*>(pair.first.get());
+        ASSERT_EQ(ident->value, tests[i]);
+        IntLiteral* lit = dynamic_cast<IntLiteral*>(pair.second.get());
+        ASSERT_EQ(lit->value, res[i]);
+        i++;
+    }
+    ASSERT_EQ(stmt->serialize(), "{one: 1, two: 2}");
+}
+
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

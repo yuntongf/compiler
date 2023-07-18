@@ -235,6 +235,72 @@ TEST(TokenTest, EqualTest) {
     }
 }
 
+TEST(TokenTest, StringTest) {
+    const string input = 
+    "\"he llo\"; \"world\"";
+
+    auto l = Lexer(input);
+
+    Token tests[] = {
+        {types.STRING, "he llo"},
+        {types.SEMICOLON, ";"},
+        {types.STRING, "world"},
+        {types.EoF, ""},
+    };
+
+    for (Token test : tests) {
+        Token tok = l.nextToken();
+        ASSERT_EQ(test.type, tok.type);
+        ASSERT_EQ(test.literal, tok.literal);
+    }
+}
+
+TEST(TokenTest, ArrayTest) {
+    const string input = 
+    "[1, 2, a]";
+
+    auto l = Lexer(input);
+
+    Token tests[] = {
+        {types.LBRACKET, "["},
+        {types.INT, "1"},
+        {types.COMMA, ","},
+        {types.INT, "2"},
+        {types.COMMA, ","},
+        {types.IDENT, "a"},
+        {types.RBRACKET, "]"},
+        {types.EoF, ""},
+    };
+
+    for (Token test : tests) {
+        Token tok = l.nextToken();
+        ASSERT_EQ(test.type, tok.type);
+        ASSERT_EQ(test.literal, tok.literal);
+    }
+}
+
+TEST(TokenTest, HashTest) {
+    const string input = 
+    "{a : 1}";
+
+    auto l = Lexer(input);
+
+    Token tests[] = {
+        {types.LBRACE, "{"},
+        {types.IDENT, "a"},
+        {types.COLON, ":"},
+        {types.INT, "1"},
+        {types.RBRACE, "}"},
+        {types.EoF, ""},
+    };
+
+    for (Token test : tests) {
+        Token tok = l.nextToken();
+        ASSERT_EQ(test.type, tok.type);
+        ASSERT_EQ(test.literal, tok.literal);
+    }
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

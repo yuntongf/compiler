@@ -6,6 +6,8 @@ struct ObjTypes {
     string INTEGER_OBJ = "INTEGER";
     string BOOLEAN_OBJ = "BOOLEAN";
     string NULL_OBJ = "NULL";
+    string STRING_OBJ = "STRING";
+    string ARRAY_OBJ = "ARRAY";
 } objs;
 
 class Object {
@@ -56,6 +58,44 @@ class Null: public Object {
 
     string serialize() const override {
         return "null";
+    }
+    string getType() const override {
+        return type;
+    }
+};
+
+class String: public Object {
+    public:
+    string type = objs.STRING_OBJ;
+    string value;
+
+    String() = default;
+    String(string val) : value(val) {};
+
+    string serialize() const override {
+        return value;
+    }
+    string getType() const override {
+        return type;
+    }
+};
+
+class Array: public Object {
+    public:
+    string type = objs.ARRAY_OBJ;
+    vector<unique_ptr<Object>> elements;
+
+    Array(vector<unique_ptr<Object>>&& elements) : elements(move(elements)) {};
+
+    string serialize() const override {
+        string res = "[";
+        int i = 0;
+        for (auto& element : elements) {
+            res += element.get()->serialize();
+            if (i++ < elements.size() - 1) res += ", ";
+        }
+        res += "]";
+        return res;
     }
     string getType() const override {
         return type;
