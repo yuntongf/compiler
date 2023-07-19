@@ -329,7 +329,6 @@ TEST(VMTest, FirstClassFnTest) {
         auto compiler = Compiler();
         int err = compiler.compileProgram(&program);
         if (err) FAIL() << "test failed due to error in compiler..." << endl;
-        // cout << serialize(compiler.getByteCode().instructions) << endl;
 
         auto vm = VM(compiler.getByteCode());
         if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
