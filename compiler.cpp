@@ -1,4 +1,3 @@
-#include"bytecode.cpp"
 #include"object.cpp"
 #include"parser.cpp"
 #include"symbol.cpp"
@@ -13,39 +12,69 @@ struct EmittedInstruction {
     int ip;
 };
 
+struct CompilationScope {
+    Instruction instructions;
+    EmittedInstruction last;
+    EmittedInstruction prevLast;
+};
+
 class Compiler {
     private:
     Instruction instructions;
     vector<unique_ptr<Object>> constants;
-    EmittedInstruction last;
-    EmittedInstruction prevLast;
+    // EmittedInstruction last;
+    // EmittedInstruction prevLast;
     SymbolTable symbolTable;
 
     public:
+    vector<unique_ptr<CompilationScope>> scopes;
+    int scopeIndex;
+
     Compiler() {
         symbolTable = SymbolTable();
+        auto scope = CompilationScope{Instruction{}, EmittedInstruction{}, EmittedInstruction{}};
+        scopes.push_back(make_unique<CompilationScope>(scope));
+        scopeIndex = 0;
     };
 
     // Compiler(SymbolTable* st, vector<unique_ptr<Object>>&& constants) : symbolTable(*st), constants(move(constants)) {};
 
-    void setLastInstruction(OpCode opcode, int ip) {
-        prevLast = last;
-        last = EmittedInstruction{opcode, ip};
+    CompilationScope* getCurrScope() {
+        return scopes.at(scopeIndex).get();
     }
 
-    void removeIfLastPop() {
-        if (last.opcode == OpPop) {
-            instructions.pop_back();
-            last = prevLast;
+    Instruction getCurrInstructions() {
+        return scopes.at(scopeIndex).get()->instructions;
+    }
+
+    
+    void setLastInstruction(OpCode opcode, int ip) {
+        auto scope = getCurrScope();
+        auto prevLast = scope->last;
+        auto last = EmittedInstruction{opcode, ip};
+
+        scope->prevLast = prevLast;
+        scope->last = last;
+    }
+
+    int removeIfLastPop() {
+        CompilationScope* scope = getCurrScope();
+        if (scope == nullptr) return 1; // invalid scope
+        if (scope->last.opcode == OpPop) {
+            auto prevLast = scope->prevLast;
+            scope->instructions.pop_back();
+            scope->last = prevLast;
         }
+        return 0;
     }
 
     void changeOperand(int ip, vector<int> operand) {
-        auto opcode = OpCode(instructions.at(ip));
+        auto scope = getCurrScope();
+        auto opcode = OpCode(scope->instructions.at(ip));
         auto newInstruction = constructByteCode(opcode, operand);
         // replace instruction
         for (int i = 0; i < newInstruction.size(); i++) {
-            instructions.at(ip + i) = newInstruction.at(i);
+            scope->instructions.at(ip + i) = newInstruction.at(i);
         }
     }
 
@@ -123,18 +152,18 @@ class Compiler {
             if (compile(move(exp->condition))) return 1; // failed to compile condition of if statement
             int posJumpIfFalse = emit(OpJumpIfFalse, vector<int>{-1}); // fix later
             if (compile(move(exp->consequence))) return 1; // failed to compile consequence
-            removeIfLastPop(); // do not pop the result of consequence off stack
+            if (removeIfLastPop()) return 1; // do not pop the result of consequence off stack
 
             int posJump = emit(OpJump, vector<int>{-1});
-            changeOperand(posJumpIfFalse, vector<int>{(int) instructions.size()});
+            changeOperand(posJumpIfFalse, vector<int>{(int) getCurrScope()->instructions.size()});
 
             if (exp->alternative == nullptr) {
                 emit(OpNull, vector<int>{});
             } else {
                 if (compile(move(exp->alternative))) return 1; // failed to compile alternative of if statement
-                removeIfLastPop();
+                if (removeIfLastPop()) return 1;
             }
-            changeOperand(posJump, vector<int>{(int) instructions.size()});
+            changeOperand(posJump, vector<int>{(int) getCurrScope()->instructions.size()});
         }
         else if (type == ntypes.BlockStatement) {
             BlockStatement* stmt = dynamic_cast<BlockStatement*>(node.get());
@@ -178,7 +207,7 @@ class Compiler {
     }
 
     ByteCode getByteCode() {
-        ByteCode bc = {instructions, move(constants)};
+        ByteCode bc = {getCurrScope()->instructions, move(constants)};
         return bc;
     }
 
@@ -191,14 +220,34 @@ class Compiler {
         auto instruction = constructByteCode(opcode, operands);
         // cout << serialize(instruction) << endl;
         int pos = addInstruction(instruction);
-        prevLast = last;
-        last = EmittedInstruction{opcode, pos};
+        auto scope = getCurrScope();
+        scope->prevLast = scope->last;
+        scope->last = EmittedInstruction{opcode, pos};
         return pos;
     }
 
     int addInstruction(Instruction instruction) {
-        int pos = instructions.size();
-        instructions.insert(instructions.end(), instruction.begin(), instruction.end());
+        Instruction temp = getCurrInstructions();
+        int pos = temp.size();
+        temp.insert(temp.end(), instruction.begin(), instruction.end());
+        scopes.at(scopeIndex).get()->instructions = temp; // suspect
         return pos;
+    }
+
+    void enterScope() {
+        auto scope = CompilationScope{
+            Instruction{}, 
+            EmittedInstruction{}, 
+            EmittedInstruction{}
+        };
+        scopes.push_back(make_unique<CompilationScope>(scope));
+        scopeIndex++;
+    }
+
+    Instruction leaveScope() {
+        auto instructions = getCurrInstructions();
+        scopes.pop_back();
+        scopeIndex--;
+        return instructions;
     }
 };

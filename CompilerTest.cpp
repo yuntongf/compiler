@@ -451,7 +451,73 @@ TEST(CompilerTest, HashTest) {
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{1, 3, 2, 4, 5, 3, 4, 6}, move(bytecode.constants));
 }
+// TEST(CompilerTest, FnTest) {
+//     string input = "fn(){return 2 + 3;}";
+//     Lexer l = Lexer(input);
+//     Parser p = Parser(l);
+//     auto program = Program();
+//     int error = p.parseProgram(&program);
+//     if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+//     auto compiler = Compiler();
+//     int err = compiler.compileProgram(&program);
+//     if (err) FAIL() << "test failed due to error in compiler..." << endl;
 
+//     auto bytecode = compiler.getByteCode();
+//     vector<Instruction> expected = {
+//         constructByteCode(OpConstant, vector<int>{2}),
+//         constructByteCode(OpPop, vector<int>{}),
+//     };
+//     testInstructions(concatInstructions(expected), bytecode.instructions);
+//     vector<Instruction> expectedConstants {
+//         constructByteCode(OpConstant, vector<int>{0}),
+//         constructByteCode(OpConstant, vector<int>{1}),
+//         constructByteCode(OpAdd, vector<int>{}),
+//         constructByteCode(OpRetVal, vector<int>{}),
+//     };
+//     vector<int> expectedInt = {2, 3};
+//     for (int i = 0; i < expectedInt.size(); i++) {
+//         Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+//         ASSERT_EQ(expected.at(i), lit->value);
+//     }
+//     // third constant is a function turned into Instruction
+//     CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+//     testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+// }
+
+TEST(CompilerTest, CompilerScopeTest) {
+    auto compiler = Compiler();
+    if (compiler.scopeIndex != 0) FAIL() << "wrong scope, should be 0, but got "<< compiler.scopeIndex << endl;
+
+    compiler.emit(OpAdd, vector<int>{});
+    compiler.enterScope();
+    if (compiler.scopeIndex != 1) FAIL() << "wrong scope, should be 1, but got "<< compiler.scopeIndex << endl;
+
+    compiler.emit(OpSub, vector<int>{});
+    int size = compiler.scopes.at(compiler.scopeIndex).get()->instructions.size();
+    if (size != 1)
+        FAIL() << "wrong instruction length, expected 1 but got " << size << endl;
+    auto last = compiler.scopes.at(compiler.scopeIndex).get()->last;
+    if (last.opcode != OpSub)
+        FAIL() << "wrong opcode, should be OpSub"<< endl;
+    
+    compiler.leaveScope();
+    if (compiler.scopeIndex != 0) FAIL() << "wrong scope, should be 0, but got "<< compiler.scopeIndex << endl;
+    
+    compiler.emit(OpDiv, vector<int>{});
+    size = compiler.scopes.at(compiler.scopeIndex).get()->instructions.size();
+    if (size != 2)
+        FAIL() << "wrong instruction length, expected 2 but got " << size << endl;
+
+    last = compiler.scopes.at(compiler.scopeIndex).get()->last;
+    if (last.opcode != OpDiv)
+        FAIL() << "wrong opcode, should be OpDiv, but got " << endl;
+    
+    auto prevLast = compiler.scopes.at(compiler.scopeIndex).get()->prevLast;
+    if (prevLast.opcode != OpAdd)
+        FAIL() << "wrong opcode, should be OpAdd, but got " << endl;
+    
+};
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

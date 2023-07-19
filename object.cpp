@@ -1,5 +1,6 @@
 #include<iostream>
 #include<functional>
+#include"bytecode.cpp"
 
 using namespace std;
 
@@ -11,6 +12,7 @@ struct ObjTypes {
     string ARRAY_OBJ = "ARRAY";
     string HASH_OBJ = "HASH_PAIR";
     string HASH_TABLE = "HASH_TABLE";
+    string COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION";
 } objs;
 
 class Object {
@@ -185,3 +187,18 @@ HashKey hashKey(unique_ptr<Object>& obj) {
         return 0;
     }
 }
+
+class CompiledFunction : public Object {
+    public:
+    string type = objs.COMPILED_FUNCTION_OBJ;
+    Instruction instructions;
+
+    CompiledFunction(Instruction instructions) : instructions(instructions) {};
+
+    string serialize() const override {
+        return "compiled function";
+    };
+    bool hashable() const override {
+        return false;
+    }
+};

@@ -129,29 +129,29 @@ runTests/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/build
 .PHONY : runTests/fast
 
-VMTest.o: VMTest.cpp.o
-.PHONY : VMTest.o
+CompilerTest.o: CompilerTest.cpp.o
+.PHONY : CompilerTest.o
 
 # target to build an object file
-VMTest.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/VMTest.cpp.o
-.PHONY : VMTest.cpp.o
+CompilerTest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.o
+.PHONY : CompilerTest.cpp.o
 
-VMTest.i: VMTest.cpp.i
-.PHONY : VMTest.i
+CompilerTest.i: CompilerTest.cpp.i
+.PHONY : CompilerTest.i
 
 # target to preprocess a source file
-VMTest.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/VMTest.cpp.i
-.PHONY : VMTest.cpp.i
+CompilerTest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.i
+.PHONY : CompilerTest.cpp.i
 
-VMTest.s: VMTest.cpp.s
-.PHONY : VMTest.s
+CompilerTest.s: CompilerTest.cpp.s
+.PHONY : CompilerTest.s
 
 # target to generate assembly for a file
-VMTest.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/VMTest.cpp.s
-.PHONY : VMTest.cpp.s
+CompilerTest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/CompilerTest.cpp.s
+.PHONY : CompilerTest.cpp.s
 
 # Help Target
 help:
@@ -162,9 +162,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... runTests"
-	@echo "... VMTest.o"
-	@echo "... VMTest.i"
-	@echo "... VMTest.s"
+	@echo "... CompilerTest.o"
+	@echo "... CompilerTest.i"
+	@echo "... CompilerTest.s"
 .PHONY : help
 
 
