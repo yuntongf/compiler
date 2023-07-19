@@ -611,7 +611,79 @@ TEST(CompilerTest, CompilerScopeTest) {
         FAIL() << "wrong opcode, should be OpAdd, but got " << endl;
     
 };
-int main(int argc, char** argv) {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+
+TEST(CompilerTest, FnCallingTest) {
+    string input = "fn(){2; 3;}()";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpCall, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpRetVal, vector<int>{}),
+    };
+    vector<int> expectedInt = {2, 3};
+    for (int i = 0; i < expectedInt.size(); i++) {
+        Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+        ASSERT_EQ(expectedInt.at(i), lit->value);
+    }
+    // third constant is a function turned into Instruction
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
 }
+
+TEST(CompilerTest, FnCallingBindingTest) {
+    string input = "let f = fn(){2; 3}; f();";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpSetGlobal, vector<int>{0}),
+        constructByteCode(OpGetGlobal, vector<int>{0}),
+        constructByteCode(OpCall, vector<int>{}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpRetVal, vector<int>{}),
+    };
+    vector<int> expectedInt = {2, 3};
+    for (int i = 0; i < expectedInt.size(); i++) {
+        Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+        ASSERT_EQ(expectedInt.at(i), lit->value);
+    }
+    // third constant is a function turned into Instruction
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+}
+// int main(int argc, char** argv) {
+//     testing::InitGoogleTest(&argc, argv);
+//     return RUN_ALL_TESTS();
+// }

@@ -118,6 +118,11 @@ class Compiler {
             int constIdx = addConstant(make_unique<CompiledFunction>(compiledFn));
             emit(OpConstant, vector<int>{constIdx});
         }
+        else if (type == ntypes.CallExpression) {
+            CallExpression* exp = dynamic_cast<CallExpression*>(node.get());
+            if (compile(move(exp->function))) return 1; // failed to compile function of function call
+            emit(OpCall, vector<int>{});
+        }
         else if (type == ntypes.ReturnStatement) {
             ReturnStatement* stmt = dynamic_cast<ReturnStatement*>(node.get());
             if (compile(move(stmt->value))) return 1; // failed to compile return statement
