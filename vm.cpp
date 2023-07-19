@@ -4,27 +4,59 @@
 using namespace std;
 
 const int stackSize = 2048;
+const int frameStackSize = 1024;
 const int globalsSize = 4096;
 
 class VM {
     public:
     vector<unique_ptr<Object>> constants;
     vector<unique_ptr<Object>> globals;
-    Instruction instructions;
+    vector<unique_ptr<Frame>> frames;
+    int frameIndex; // points to the next free slot in frame stack
+    // Instruction instructions;
 
     vector<unique_ptr<Object>> stack;
     int sp; // always points to the next free slot in stack
 
     VM(ByteCode bytecode) {
-        instructions = bytecode.instructions;
+        // instructions = bytecode.instructions;
         constants = move(bytecode.constants);
         globals = vector<unique_ptr<Object>>(globalsSize);
         stack = vector<unique_ptr<Object>>(stackSize);
         sp = 0;
+
+        frames = vector<unique_ptr<Frame>>(frameStackSize);
+        frameIndex = 1;
+        auto mainFn = CompiledFunction(bytecode.instructions);
+        frames.at(0) = make_unique<Frame>(mainFn);
     };
 
+    Frame* getCurrFrame() {
+        return frames.at(frameIndex - 1).get();
+    }
+
+    int getCurrIp() {
+        return frames.at(frameIndex - 1).get()->ip;
+    }
+    void setCurrIp(int ip) {
+        frames.at(frameIndex - 1).get()->ip = ip;
+    }
+
+    int getCurrFrameSize() {
+        return frames.at(frameIndex - 1).get()->getInstructions().size();
+    }
+
+    void pushFrame(unique_ptr<Frame> frame) {
+        frames.at(frameIndex) = move(frame);
+        frameIndex++;
+    }
+
+    Frame* popFrame() {
+        frameIndex--;
+        return frames.at(frameIndex).get();
+    }
+
     unique_ptr<Object>& getLastPopped() {
-        // cout << "sp is" << sp << endl;
         return stack.at(sp);
     }
 
@@ -59,8 +91,10 @@ class VM {
     }
 
     int run() {
-        for (int ip = 0; ip < instructions.size(); ip++) { // ip at the end of the loop points the the last executed instruction
-            // fetch
+        while (getCurrIp() < getCurrFrameSize()) { // ip at the end of the loop points the the last executed instruction
+            Frame* frame = getCurrFrame();
+            int ip = frame->ip;
+            auto instructions = frame->getInstructions();
             auto opcode = OpCode(instructions.at(ip));
             switch (opcode) {
                 case OpConstant: 
@@ -253,9 +287,35 @@ class VM {
                     }
                 }
                 break;
+                case OpCall:
+                {   
+                    CompiledFunction* fn = dynamic_cast<CompiledFunction*>(stack.at(sp - 1).get());
+                    if (fn == nullptr) {
+                        return 1; // failed to get function from stack
+                    }
+                    pushFrame(make_unique<Frame>(*fn));
+                }
+                break;
+                case OpRetVal:
+                {   
+                    auto ret = move(pop()); // pop return result
+                    popFrame(); // pop function frame
+                    pop(); // pop function
+                    push(move(ret));
+                }
+                break;
+                case OpRet:
+                {
+                    popFrame();
+                    pop();
+                    push(make_unique<Null>());
+                }
+                break;
                 default:
                     break;
             }
+            // setCurrIp(ip + 1);
+            frame->ip = ip + 1;
         }
         return 0;
     }
@@ -271,6 +331,15 @@ class VM {
         } else if (type == objs.STRING_OBJ) {
             String* str = dynamic_cast<String*>(up.get());
             return make_unique<String>(*str);
+        } else if (type == objs.ARRAY_OBJ) {
+            Array* arr = dynamic_cast<Array*>(up.get());
+            return make_unique<Array>(move(arr->elements));
+        } else if (type == objs.COMPILED_FUNCTION_OBJ) {
+            CompiledFunction* fn = dynamic_cast<CompiledFunction*>(up.get());
+            return make_unique<CompiledFunction>(*fn);
+        } else if (type == objs.HASH_TABLE) {
+            HashTable* hash = dynamic_cast<HashTable*>(up.get());
+            return make_unique<HashTable>(move(hash->table));
         } else {
             return make_unique<Null>();
         }

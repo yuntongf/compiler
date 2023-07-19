@@ -205,3 +205,15 @@ class CompiledFunction : public Object {
         return false;
     }
 };
+
+class Frame {
+    public:
+    CompiledFunction fn;
+    int ip;
+
+    Frame(CompiledFunction& fn) : fn(fn), ip(0) {};
+
+    Instruction getInstructions() {
+        return fn.instructions;
+    }
+};
