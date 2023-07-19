@@ -137,7 +137,7 @@ void Parser::parseLetStatement(LetStatement* statement) {
             
             if (nextTok.type == types.SEMICOLON) readToken();
             else {
-                errors.push_back("Expected ';', but got"+currTok.literal);
+                errors.push_back("Expected ';', but got "+ nextTok.literal);
                 statement == nullptr;
                 return;
             }
@@ -151,7 +151,7 @@ void Parser::parseReturnStatement(ReturnStatement* statement) {
     statement->value = move(parseExpression(LOWEST));
     if (nextTok.type == types.SEMICOLON) readToken();
     else {
-        errors.push_back("Expected ';', but got"+currTok.literal);
+        errors.push_back("Expected ';', but got "+nextTok.literal);
         statement == nullptr;
         return;
     }
@@ -244,6 +244,7 @@ unique_ptr<Expression> Parser::parseExpression(int precedence) {
         readToken();
         leftExpression = (this->*infixParser)(leftExpression);
     }
+
     return leftExpression;
 }
 
@@ -299,7 +300,6 @@ unique_ptr<Expression> Parser::parseFnLiteral() {
         }
         readToken(); // skip ')'
         unique_ptr<BlockStatement> body = parseBlockStatement();
-        if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
         return make_unique<FnLiteral>(tok, move(params), body);
     }
 }
@@ -322,7 +322,6 @@ unique_ptr<Expression> Parser::parseArrayLiteral() {
             return nullptr;
         }
     }
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
     return make_unique<ArrayLiteral>(tok, move(elements));
 }
 
@@ -349,7 +348,6 @@ unique_ptr<Expression> Parser::parseHashLiteral() {
             return nullptr;
         } 
     }
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip optional ';'
     return make_unique<HashLiteral>(tok, pairs);
 
 }
@@ -388,7 +386,6 @@ unique_ptr<Expression> Parser::parseCallExpression(unique_ptr<Expression>& funct
             return nullptr;
         }
     }
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
     return make_unique<CallExpression>(tok, function, move(args));
 }
 
@@ -428,7 +425,6 @@ unique_ptr<Expression> Parser::parseIfExpression() {
         readToken(); // skip 'else'
         alternative = parseBlockStatement();
     } 
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip to ';'
     return make_unique<IfExpression>(tok, condition, consequence, alternative);
 }
 
@@ -440,7 +436,6 @@ unique_ptr<Expression> Parser::parseIndexExpression(unique_ptr<Expression>& enti
         errors.push_back("expect ']' after index");
         return nullptr;
     } else readToken(); // skip to ']'
-    if (nextTok.type == types.SEMICOLON) readToken(); // skip optional ';'
     return make_unique<IndexExpression>(tok, entity, index);
 }
 

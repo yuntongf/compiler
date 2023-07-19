@@ -129,29 +129,29 @@ runTests/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/build
 .PHONY : runTests/fast
 
-tests/TokenTest.o: tests/TokenTest.cpp.o
-.PHONY : tests/TokenTest.o
+tests/VMTest.o: tests/VMTest.cpp.o
+.PHONY : tests/VMTest.o
 
 # target to build an object file
-tests/TokenTest.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/TokenTest.cpp.o
-.PHONY : tests/TokenTest.cpp.o
+tests/VMTest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/VMTest.cpp.o
+.PHONY : tests/VMTest.cpp.o
 
-tests/TokenTest.i: tests/TokenTest.cpp.i
-.PHONY : tests/TokenTest.i
+tests/VMTest.i: tests/VMTest.cpp.i
+.PHONY : tests/VMTest.i
 
 # target to preprocess a source file
-tests/TokenTest.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/TokenTest.cpp.i
-.PHONY : tests/TokenTest.cpp.i
+tests/VMTest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/VMTest.cpp.i
+.PHONY : tests/VMTest.cpp.i
 
-tests/TokenTest.s: tests/TokenTest.cpp.s
-.PHONY : tests/TokenTest.s
+tests/VMTest.s: tests/VMTest.cpp.s
+.PHONY : tests/VMTest.s
 
 # target to generate assembly for a file
-tests/TokenTest.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/TokenTest.cpp.s
-.PHONY : tests/TokenTest.cpp.s
+tests/VMTest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/VMTest.cpp.s
+.PHONY : tests/VMTest.cpp.s
 
 # Help Target
 help:
@@ -162,9 +162,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... runTests"
-	@echo "... tests/TokenTest.o"
-	@echo "... tests/TokenTest.i"
-	@echo "... tests/TokenTest.s"
+	@echo "... tests/VMTest.o"
+	@echo "... tests/VMTest.i"
+	@echo "... tests/VMTest.s"
 .PHONY : help
 
 

@@ -271,3 +271,72 @@ TEST(VMTest, ArrayIndexNullTest) {
         ASSERT_EQ(test.expected.getType(), obj.get()->getType());
     }
 }
+
+
+TEST(VMTest, FnCallingTest) {
+    vector<VMTest<int>> tests = {
+        {"let f = fn(){return 2 + 3;}; f();", 5},
+        {"let a = fn(){return 1;}; let b = fn(){return 2 + a();}; let c = fn(){b() + 3;}; c();", 6},
+        {"let a = fn(){return 1; 2;}; a();", 1},
+        {"let a = fn(){return 1; return 2;}; a();", 1}
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        Integer* integer = dynamic_cast<Integer*>(obj.get());
+        ASSERT_EQ(integer->value, test.expected);
+
+    }
+}
+
+TEST(VMTest, FnCallingNullTest) {
+    auto null = Null();
+    vector<VMTest<Null>> tests = {
+        {"let a = fn(){}; a();", null},
+        {"let a = fn(){}; let b = fn(){a();}; b();", null},
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        ASSERT_EQ(test.expected.getType(), obj.get()->getType());
+    }
+}
+
+TEST(VMTest, FirstClassFnTest) {
+    vector<VMTest<int>> tests = {
+        {"let inside = fn(){2 + 3;}; let outside = fn(){inside}; outside()();", 5},
+    };
+    for (auto test : tests) {
+        auto program = Program();
+        parse(test.input, &program);
+        auto compiler = Compiler();
+        int err = compiler.compileProgram(&program);
+        if (err) FAIL() << "test failed due to error in compiler..." << endl;
+        // cout << serialize(compiler.getByteCode().instructions) << endl;
+
+        auto vm = VM(compiler.getByteCode());
+        if (vm.run()) FAIL() << "test failed due to error in vm..." << endl;
+
+        unique_ptr<Object>& obj = vm.getLastPopped();
+        Integer* integer = dynamic_cast<Integer*>(obj.get());
+        ASSERT_EQ(integer->value, test.expected);
+
+    }
+}
