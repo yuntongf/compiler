@@ -22,8 +22,6 @@ class Compiler {
     private:
     Instruction instructions;
     vector<unique_ptr<Object>> constants;
-    // EmittedInstruction last;
-    // EmittedInstruction prevLast;
     SymbolTable symbolTable;
 
     public:
@@ -57,13 +55,32 @@ class Compiler {
         scope->last = last;
     }
 
-    int removeIfLastPop() {
+    int removeIfLastIs(OpCode opcode) {
         CompilationScope* scope = getCurrScope();
         if (scope == nullptr) return 1; // invalid scope
-        if (scope->last.opcode == OpPop) {
+        if (scope->last.opcode == opcode) {
             auto prevLast = scope->prevLast;
             scope->instructions.pop_back();
             scope->last = prevLast;
+        }
+        return 0;
+    }
+
+    int replaceIfLastIs(OpCode opcode, OpCode update) {
+        CompilationScope* scope = getCurrScope();
+        if (scope == nullptr) return 1; // invalid scope
+        if (scope->last.opcode == opcode) {
+            scope->instructions.at(scope->last.ip) = update;
+            scope->last = EmittedInstruction{update, scope->last.ip};
+        }
+        return 0;
+    }
+
+    int addIfLastIsNot(OpCode opcode, OpCode update) {
+        CompilationScope* scope = getCurrScope();
+        if (scope == nullptr) return 1; // invalid scope
+        if (scope->last.opcode != opcode) {
+            emit(update, vector<int>{});
         }
         return 0;
     }
@@ -80,19 +97,31 @@ class Compiler {
 
     template<typename T> int compile(unique_ptr<T> node) {
         string type = node.get()->getType();
-        // cout << type <<endl;
         if (type == ntypes.Identifier) {
             Identifier* ident = dynamic_cast<Identifier*>(node.get());
-            // auto symbol = symbolTable.resolve(ident->value);
             emit(OpGetGlobal, vector<int>{symbolTable.resolve(ident->value).get()->index});
         }
         else if (type == ntypes.LetStatement) {
             LetStatement* stmt = dynamic_cast<LetStatement*>(node.get());
-            // if (compile(move(stmt->identifier))) return 1; // failed to compile identifier expression
             if (compile(move(stmt->value))) return 1; // failed to compile let statement expression
             // store to symbol table
-            // auto symbol = symbolTable.define(stmt->identifier.value);
             emit(OpSetGlobal, vector<int>{symbolTable.define(stmt->identifier.value).get()->index});
+        }
+        else if (type == ntypes.FnLiteral) {
+            FnLiteral* fn = dynamic_cast<FnLiteral*>(node.get());
+            enterScope();
+            if (compile(move(fn->body))) return 1; // failed to compile func body
+            if (replaceIfLastIs(OpPop, OpRetVal)) return 1; // failed to replace pop instruction with return instruction
+            if (addIfLastIsNot(OpRetVal, OpRet)); // handle empty function
+            auto instructions = leaveScope();
+            auto compiledFn = CompiledFunction(instructions);
+            int constIdx = addConstant(make_unique<CompiledFunction>(compiledFn));
+            emit(OpConstant, vector<int>{constIdx});
+        }
+        else if (type == ntypes.ReturnStatement) {
+            ReturnStatement* stmt = dynamic_cast<ReturnStatement*>(node.get());
+            if (compile(move(stmt->value))) return 1; // failed to compile return statement
+            emit(OpRetVal, vector<int>{});
         }
         else if (type == ntypes.ExpressionStatement) {
             ExpressionStatement* stmt = dynamic_cast<ExpressionStatement*>(node.get());
@@ -139,7 +168,6 @@ class Compiler {
         }
         else if (type == ntypes.IntLiteral) {
             IntLiteral* lit = dynamic_cast<IntLiteral*>(node.get());
-            // unique_ptr<Object> integer = make_unique<Integer>(lit->value);
             emit(OpConstant, vector<int>{addConstant(make_unique<Integer>(lit->value))});
         }
         else if (type == ntypes.BoolLiteral) {
@@ -152,7 +180,7 @@ class Compiler {
             if (compile(move(exp->condition))) return 1; // failed to compile condition of if statement
             int posJumpIfFalse = emit(OpJumpIfFalse, vector<int>{-1}); // fix later
             if (compile(move(exp->consequence))) return 1; // failed to compile consequence
-            if (removeIfLastPop()) return 1; // do not pop the result of consequence off stack
+            if (removeIfLastIs(OpPop)) return 1; // do not pop the result of consequence off stack
 
             int posJump = emit(OpJump, vector<int>{-1});
             changeOperand(posJumpIfFalse, vector<int>{(int) getCurrScope()->instructions.size()});
@@ -161,7 +189,7 @@ class Compiler {
                 emit(OpNull, vector<int>{});
             } else {
                 if (compile(move(exp->alternative))) return 1; // failed to compile alternative of if statement
-                if (removeIfLastPop()) return 1;
+                if (removeIfLastIs(OpPop)) return 1;
             }
             changeOperand(posJump, vector<int>{(int) getCurrScope()->instructions.size()});
         }

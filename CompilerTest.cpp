@@ -451,40 +451,133 @@ TEST(CompilerTest, HashTest) {
     testInstructions(concatInstructions(expected), bytecode.instructions);
     testConstants(vector<int>{1, 3, 2, 4, 5, 3, 4, 6}, move(bytecode.constants));
 }
-// TEST(CompilerTest, FnTest) {
-//     string input = "fn(){return 2 + 3;}";
-//     Lexer l = Lexer(input);
-//     Parser p = Parser(l);
-//     auto program = Program();
-//     int error = p.parseProgram(&program);
-//     if (error) FAIL() << "test failed due to error in parser..." << endl;
+
+TEST(CompilerTest, FnTest) {
+    string input = "fn(){return 2 + 3;}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
     
-//     auto compiler = Compiler();
-//     int err = compiler.compileProgram(&program);
-//     if (err) FAIL() << "test failed due to error in compiler..." << endl;
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
 
-//     auto bytecode = compiler.getByteCode();
-//     vector<Instruction> expected = {
-//         constructByteCode(OpConstant, vector<int>{2}),
-//         constructByteCode(OpPop, vector<int>{}),
-//     };
-//     testInstructions(concatInstructions(expected), bytecode.instructions);
-//     vector<Instruction> expectedConstants {
-//         constructByteCode(OpConstant, vector<int>{0}),
-//         constructByteCode(OpConstant, vector<int>{1}),
-//         constructByteCode(OpAdd, vector<int>{}),
-//         constructByteCode(OpRetVal, vector<int>{}),
-//     };
-//     vector<int> expectedInt = {2, 3};
-//     for (int i = 0; i < expectedInt.size(); i++) {
-//         Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
-//         ASSERT_EQ(expected.at(i), lit->value);
-//     }
-//     // third constant is a function turned into Instruction
-//     CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
-//     testInstructions(concatInstructions(expectedConstants), instruct->instructions);
-// }
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpRetVal, vector<int>{}),
+    };
+    vector<int> expectedInt = {2, 3};
+    for (int i = 0; i < expectedInt.size(); i++) {
+        Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+        ASSERT_EQ(expectedInt.at(i), lit->value);
+    }
+    // third constant is a function turned into Instruction
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+}
 
+TEST(CompilerTest, FnImplicitTest) {
+    string input = "fn(){2 + 3;}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpAdd, vector<int>{}),
+        constructByteCode(OpRetVal, vector<int>{}),
+    };
+    vector<int> expectedInt = {2, 3};
+    for (int i = 0; i < expectedInt.size(); i++) {
+        Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+        ASSERT_EQ(expectedInt.at(i), lit->value);
+    }
+    // third constant is a function turned into Instruction
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+}
+
+TEST(CompilerTest, FnTwoImplicitTest) {
+    string input = "fn(){2; 3;}";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{2}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+        constructByteCode(OpConstant, vector<int>{1}),
+        constructByteCode(OpRetVal, vector<int>{}),
+    };
+    vector<int> expectedInt = {2, 3};
+    for (int i = 0; i < expectedInt.size(); i++) {
+        Integer* lit = dynamic_cast<Integer*>(bytecode.constants.at(i).get());
+        ASSERT_EQ(expectedInt.at(i), lit->value);
+    }
+    // third constant is a function turned into Instruction
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(2).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+}
+
+TEST(CompilerTest, FnEmptyTest) {
+    string input = "fn(){ }";
+    Lexer l = Lexer(input);
+    Parser p = Parser(l);
+    auto program = Program();
+    int error = p.parseProgram(&program);
+    if (error) FAIL() << "test failed due to error in parser..." << endl;
+    
+    auto compiler = Compiler();
+    int err = compiler.compileProgram(&program);
+    if (err) FAIL() << "test failed due to error in compiler..." << endl;
+
+    auto bytecode = compiler.getByteCode();
+    vector<Instruction> expected = {
+        constructByteCode(OpConstant, vector<int>{0}),
+        constructByteCode(OpPop, vector<int>{}),
+    };
+    testInstructions(concatInstructions(expected), bytecode.instructions);
+    vector<Instruction> expectedConstants {
+        constructByteCode(OpRet, vector<int>{}),
+    };
+    CompiledFunction* instruct = dynamic_cast<CompiledFunction*>(bytecode.constants.at(0).get());
+    testInstructions(concatInstructions(expectedConstants), instruct->instructions);
+}
 TEST(CompilerTest, CompilerScopeTest) {
     auto compiler = Compiler();
     if (compiler.scopeIndex != 0) FAIL() << "wrong scope, should be 0, but got "<< compiler.scopeIndex << endl;

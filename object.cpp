@@ -198,6 +198,9 @@ class CompiledFunction : public Object {
     string serialize() const override {
         return "compiled function";
     };
+    string getType() const override {
+        return type;
+    };
     bool hashable() const override {
         return false;
     }
