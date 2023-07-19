@@ -1,4 +1,4 @@
-#include"vm.cpp"
+#include"../vm.cpp"
 #include<iostream>
 #include<gtest/gtest.h>
 

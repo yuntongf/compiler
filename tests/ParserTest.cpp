@@ -1,6 +1,6 @@
 #include<iostream>
 #include<gtest/gtest.h>
-#include"parser.cpp"
+#include"../parser.cpp"
 #include<map>
 
 TEST(ParserTest, LetStatementTest) {
